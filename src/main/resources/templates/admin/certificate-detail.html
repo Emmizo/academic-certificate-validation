@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      th:replace="admin-layout :: adminLayout(~{::title}, ~{::main})">
+<head>
+    <title>Certificate Detail</title>
+</head>
+<body>
+<main class="space-y-6">
+    <div class="flex flex-wrap items-start justify-between gap-3 sm:gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900">Certificate Detail</h1>
+            <p class="mt-1 text-sm text-slate-600">Signed academic certificate record.</p>
+        </div>
+        <div class="flex flex-wrap gap-2 mt-3 sm:mt-0">
+            <a th:href="@{/admin/certificates}"
+               class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50">
+                Back to List
+            </a>
+            <a th:href="@{/admin/certificates/{id}/pdf(id=${certificate.id})}"
+               class="rounded-lg border border-[#164655] bg-white px-4 py-2 text-sm font-semibold text-[#164655] hover:bg-[#164655] hover:text-white">
+                Download PDF
+            </a>
+            <a th:href="@{/admin/certificates/{id}/self-test(id=${certificate.id})}"
+               class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50">
+                Run Signature Self‑Test
+            </a>
+            <a th:href="@{/verify(certificateId=${certificate.certificateId})}"
+               class="rounded-lg bg-[#164655] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0f303a]">
+                Verify This Certificate
+            </a>
+        </div>
+    </div>
+
+    <div class="mt-6 rounded-2xl border border-slate-200 bg-white p-8">
+        <div class="flex items-center justify-between gap-4">
+            <div>
+                <div class="text-xs text-slate-500">Certificate ID</div>
+                <div class="mt-1 font-mono text-lg font-semibold" th:text="${certificate.certificateId}"></div>
+            </div>
+            <div class="text-right">
+                <div class="text-xs text-slate-500">Issued</div>
+                <div class="mt-1 text-sm font-semibold text-slate-900" th:text="${certificate.issueDate}"></div>
+            </div>
+        </div>
+
+        <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <div class="text-xs text-slate-500">Student Name</div>
+                <div class="mt-1 font-semibold text-slate-900" th:text="${certificate.studentName}"></div>
+            </div>
+            <div>
+                <div class="text-xs text-slate-500">Student ID</div>
+                <div class="mt-1 font-semibold text-slate-900" th:text="${certificate.studentId}"></div>
+            </div>
+            <div>
+                <div class="text-xs text-slate-500">Degree</div>
+                <div class="mt-1 font-semibold text-slate-900" th:text="${certificate.degree}"></div>
+            </div>
+            <div>
+                <div class="text-xs text-slate-500">Institution</div>
+                <div class="mt-1 font-semibold text-slate-900" th:text="${certificate.institution}"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-6 rounded-2xl border border-slate-200 bg-white p-6">
+        <h2 class="text-lg font-semibold text-slate-900">Cryptographic Details</h2>
+        <div class="mt-4 space-y-4">
+            <div>
+                <div class="text-xs text-slate-500">Document Hash (SHA-256)</div>
+                <div class="mt-1 font-mono text-xs break-all text-slate-900" th:text="${certificate.documentHash}"></div>
+            </div>
+            <div>
+                <div class="text-xs text-slate-500">Digital Signature</div>
+                <details class="mt-1 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                    <summary class="cursor-pointer text-sm font-semibold text-slate-900">
+                        Show full signature
+                    </summary>
+                    <div class="mt-2 font-mono text-xs break-all text-slate-900" th:text="${certificate.digitalSignature}"></div>
+                </details>
+                <div class="mt-2 font-mono text-xs break-all text-slate-700"
+                     th:text="${#strings.abbreviate(certificate.digitalSignature, 60)}"></div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <div class="text-xs text-slate-500">Key Pair ID Used</div>
+                    <div class="mt-1 font-mono text-sm font-semibold text-slate-900" th:text="${certificate.keyPair.id}"></div>
+                </div>
+                <div>
+                    <div class="text-xs text-slate-500">Signed Timestamp</div>
+                    <div class="mt-1 text-sm font-semibold text-slate-900"
+                         th:text="${#temporals.format(certificate.createdAt, 'yyyy-MM-dd HH:mm:ss')}"></div>
+                </div>
+                <div>
+                    <div class="text-xs text-slate-500">Issued By</div>
+                    <div class="mt-1 text-sm font-semibold text-slate-900" th:text="${certificate.issuedBy.username}"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="rounded-2xl border border-slate-200 bg-white p-6"
+         th:if="${selfTestRan}">
+        <h2 class="text-lg font-semibold text-slate-900">Signature Self‑Test</h2>
+        <p class="mt-1 text-xs text-slate-600">
+            These checks run locally using the current public key and the stored hash/signature. No data is modified.
+        </p>
+        <dl class="mt-4 space-y-2 text-sm">
+            <div class="flex items-center justify-between">
+                <dt class="text-slate-600">Using original data</dt>
+                <dd th:text="${selfTestValidSignature} ? 'VALID' : 'INVALID'"
+                    th:classappend="${selfTestValidSignature} ? ' text-emerald-700' : ' text-red-600'">
+                    VALID
+                </dd>
+            </div>
+            <div class="flex items-center justify-between">
+                <dt class="text-slate-600">Simulated tampered data</dt>
+                <dd th:text="${selfTestTamperedAccepted} ? 'UNEXPECTED: accepted' : 'EXPECTED: rejected'"
+                    th:classappend="${selfTestTamperedAccepted} ? ' text-red-600' : ' text-emerald-700'">
+                    EXPECTED: rejected
+                </dd>
+            </div>
+        </dl>
+    </div>
+</main>
+</body>
+</html>
+

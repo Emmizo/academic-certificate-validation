@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      th:replace="admin-layout :: adminLayout(~{::title}, ~{::main})">
+<head>
+    <title>Admin Dashboard</title>
+</head>
+<body>
+<main class="space-y-8">
+    <div class="flex flex-wrap items-start justify-between gap-3 sm:gap-4">
+        <div>
+            <p class="text-xs font-semibold tracking-wide text-slate-500 uppercase">Admin overview</p>
+            <h1 class="mt-1 text-2xl sm:text-3xl font-semibold tracking-tight text-slate-900">Dashboard</h1>
+            <p class="mt-1 text-sm text-slate-600">
+                Welcome, <span class="font-semibold" th:text="${username}"></span>.
+            </p>
+        </div>
+        <div class="flex gap-2 mt-3 sm:mt-0">
+            <a th:href="@{/admin/issue}"
+               class="inline-flex items-center gap-2 rounded-lg bg-[#164655] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0f303a] shadow-sm transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#164655] focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50">
+                <span>
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14M5 12h14"/>
+                    </svg>
+                </span>
+                Issue New Certificate
+            </a>
+            <a th:href="@{/admin/keys}"
+               class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50 shadow-sm transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#164655] focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50">
+                <span>
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="8" cy="8" r="3"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 10.5 16 16m-2 2 3-3"/>
+                    </svg>
+                </span>
+                Manage Keys
+            </a>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm flex items-start gap-4">
+            <div class="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[#164655]/10 text-[#164655]">
+                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 4h14v16H5z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 8h6M9 12h2"/>
+                </svg>
+            </div>
+            <div>
+                <div class="text-xs font-medium text-slate-500 uppercase tracking-wide">Total Certificates</div>
+                <div class="mt-2 text-3xl font-semibold text-slate-900" th:text="${totalCerts}">0</div>
+                <div class="mt-1 text-xs text-slate-500">All time issued certificates in the system.</div>
+            </div>
+        </div>
+        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm flex items-start gap-4">
+            <div class="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="4"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.9 4.9 7 7m10 10 2.1 2.1M4 12h2m12 0h2M7 17l-2.1 2.1M17 7l2.1-2.1"/>
+                </svg>
+            </div>
+            <div>
+                <div class="text-xs font-medium text-slate-500 uppercase tracking-wide">Active Key Status</div>
+                <div class="mt-2 inline-flex items-center gap-2 text-sm font-semibold"
+                     th:classappend="${activeKeyPresent} ? 'text-emerald-700' : 'text-red-700'">
+                    <span class="inline-flex h-2 w-2 rounded-full"
+                          th:classappend="${activeKeyPresent} ? ' bg-emerald-500' : ' bg-red-500'"></span>
+                    <span th:text="${activeKeyPresent} ? 'ACTIVE' : 'NOT GENERATED'">ACTIVE</span>
+                </div>
+                <div class="mt-1 text-xs text-slate-500" th:if="${activeKeyCreatedAt != null}"
+                     th:text="'Generated: ' + ${#temporals.format(activeKeyCreatedAt, 'yyyy-MM-dd HH:mm:ss')}"></div>
+                <div class="mt-1 text-xs text-slate-500" th:if="${activeKeyCreatedAt == null}">
+                    Generate a key pair before issuing certificates.
+                </div>
+            </div>
+        </div>
+        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm flex items-start gap-4">
+            <div class="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[#164655]/10 text-[#164655]">
+                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3M5 11h14M6 5h.01M18 5h.01M5 21h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z"/>
+                </svg>
+            </div>
+            <div>
+                <div class="text-xs font-medium text-slate-500 uppercase tracking-wide">Last Certificate Date</div>
+                <div class="mt-2 text-lg font-semibold text-slate-900"
+                     th:text="${lastCertificateDate != null} ? ${lastCertificateDate} : '—'">
+                    —
+                </div>
+                <div class="mt-1 text-xs text-slate-500">
+                    Shows when the most recent certificate was issued.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <section class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <div class="xl:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 class="text-sm font-semibold text-slate-900 tracking-tight">Quick Actions</h2>
+            <p class="mt-1 text-xs text-slate-500">Jump straight into the most common administrative tasks.</p>
+            <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <a th:href="@{/admin/issue}"
+                   class="group rounded-xl border border-slate-200 bg-slate-50/40 p-4 hover:border-[#164655]/40 hover:bg-[#164655]/5 transition duration-150 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#164655] focus-visible:ring-offset-2">
+                    <div class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[#164655]/10 text-[#164655] group-hover:bg-[#164655] group-hover:text-white transition-colors duration-150">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14M5 12h14"/>
+                        </svg>
+                    </div>
+                    <div class="mt-3 font-semibold text-slate-900">Issue New Certificate</div>
+                    <div class="mt-1 text-xs text-slate-600">Create and digitally sign a new certificate.</div>
+                </a>
+                <a th:href="@{/admin/students}"
+                   class="group rounded-xl border border-slate-200 bg-slate-50/40 p-4 hover:border-[#164655]/40 hover:bg-[#164655]/5 transition duration-150 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#164655] focus-visible:ring-offset-2">
+                    <div class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[#164655]/10 text-[#164655] group-hover:bg-[#164655] group-hover:text-white transition-colors duration-150">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5.5 21a6.5 6.5 0 0 1 13 0M12 11a4 4 0 1 0-4-4 4 4 0 0 0 4 4z"/>
+                        </svg>
+                    </div>
+                    <div class="mt-3 font-semibold text-slate-900">Manage Students</div>
+                    <div class="mt-1 text-xs text-slate-600">Create and maintain student records.</div>
+                </a>
+                <a th:href="@{/admin/keys}"
+                   class="group rounded-xl border border-slate-200 bg-slate-50/40 p-4 hover:border-emerald-300 hover:bg-emerald-50 transition duration-150 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2">
+                    <div class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors duration-150">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 15a4 4 0 1 0-4-4 4 4 0 0 0 4 4z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 21v-2a4 4 0 0 0-4-4H9"/>
+                        </svg>
+                    </div>
+                    <div class="mt-3 font-semibold text-slate-900">Manage Keys</div>
+                    <div class="mt-1 text-xs text-slate-600">Generate and rotate RSA key pairs.</div>
+                </a>
+                <a th:href="@{/admin/certificates}"
+                   class="group rounded-xl border border-slate-200 bg-slate-50/40 p-4 hover:border-slate-300 hover:bg-slate-100 transition duration-150 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#164655] focus-visible:ring-offset-2">
+                    <div class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-700 group-hover:text-white transition-colors duration-150">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 5h14v14H5z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 9h6m-6 4h3"/>
+                        </svg>
+                    </div>
+                    <div class="mt-3 font-semibold text-slate-900">View All Certificates</div>
+                    <div class="mt-1 text-xs text-slate-600">Browse issued certificates and details.</div>
+                </a>
+            </div>
+        </div>
+
+        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 class="text-sm font-semibold text-slate-900 tracking-tight">System Health</h2>
+            <p class="mt-1 text-xs text-slate-500">High-level view of cryptographic readiness.</p>
+            <dl class="mt-4 space-y-3 text-sm">
+                <div class="flex items-center justify-between">
+                    <dt class="text-slate-600">Key pair ready</dt>
+                    <dd class="font-medium"
+                        th:classappend="${activeKeyPresent} ? ' text-emerald-700' : ' text-red-700'"
+                        th:text="${activeKeyPresent} ? 'Yes' : 'No'">Yes</dd>
+                </div>
+                <div class="flex items-center justify-between">
+                    <dt class="text-slate-600">Certificates in last 7 days</dt>
+                    <dd class="font-medium text-slate-900" th:text="${certsLast7Days}">0</dd>
+                </div>
+                <div class="flex items-center justify-between">
+                    <dt class="text-slate-600">Verification endpoint</dt>
+                    <dd class="font-mono text-xs text-[#164655]">/verify</dd>
+                </div>
+            </dl>
+
+            <div class="mt-5">
+                <h3 class="text-xs font-semibold text-slate-700 uppercase tracking-wide">Issuance trend</h3>
+                <p class="mt-1 text-xs text-slate-500">Certificates issued per day over the last 7 days.</p>
+                <div class="mt-3 rounded-lg border border-slate-200 bg-slate-50/80 p-3 h-44">
+                    <canvas id="certificatesChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div class="flex items-center justify-between gap-4">
+            <div>
+                <h2 class="text-sm font-semibold text-slate-900 tracking-tight">Recent Certificates</h2>
+                <p class="mt-1 text-xs text-slate-500">Most recently issued certificates in the system.</p>
+            </div>
+            <a th:href="@{/admin/certificates}"
+               class="text-xs font-semibold text-[#164655] hover:text-[#0f303a] transition-colors duration-150">
+                View all →
+            </a>
+        </div>
+        <div class="mt-4 rounded-xl border border-slate-100 bg-slate-50/70 overflow-x-auto">
+            <table class="min-w-full text-sm">
+                <thead class="bg-slate-100 text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                <tr>
+                    <th class="px-4 py-2 text-left">Certificate ID</th>
+                    <th class="px-4 py-2 text-left">Student</th>
+                    <th class="px-4 py-2 text-left hidden sm:table-cell">Degree</th>
+                    <th class="px-4 py-2 text-left">Issued</th>
+                    <th class="px-4 py-2 text-right">Actions</th>
+                </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 bg-white"
+                       th:if="${recentCertificates != null and !#lists.isEmpty(recentCertificates)}">
+                <tr th:each="c : ${recentCertificates}">
+                    <td class="px-4 py-3 font-mono text-xs text-slate-900" th:text="${c.certificateId}"></td>
+                    <td class="px-4 py-3 text-slate-900" th:text="${c.studentName}"></td>
+                    <td class="px-4 py-3 text-slate-700 hidden sm:table-cell" th:text="${c.degree}"></td>
+                    <td class="px-4 py-3 text-slate-700" th:text="${c.issueDate}"></td>
+                    <td class="px-4 py-3 text-right">
+                        <a th:href="@{/admin/certificates/{id}(id=${c.id})}"
+                           class="inline-flex items-center gap-1 text-xs font-semibold text-[#164655] hover:text-[#0f303a] transition-colors duration-150">
+                            View
+                            <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5h10m0 0v10m0-10L9 15"/>
+                            </svg>
+                        </a>
+                    </td>
+                </tr>
+                </tbody>
+                <tbody th:if="${recentCertificates == null or #lists.isEmpty(recentCertificates)}">
+                <tr>
+                    <td colspan="5" class="px-4 py-6 text-center text-xs text-slate-500">
+                        No certificates have been issued yet. Issue your first certificate to see it here.
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script th:inline="javascript">
+    const chartCanvas = document.getElementById('certificatesChart');
+    if (chartCanvas) {
+        const labels = /*[[${chartLabels}]]*/ [];
+        const values = /*[[${chartValues}]]*/ [];
+
+        new Chart(chartCanvas, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Certificates issued',
+                    data: values,
+                    backgroundColor: 'rgba(22, 70, 85, 0.7)',
+                    borderRadius: 6,
+                    maxBarThickness: 24
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: {
+                            color: '#64748b',
+                            font: { size: 10 }
+                        },
+                        grid: {
+                            display: false
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            precision: 0,
+                            color: '#64748b',
+                            font: { size: 10 }
+                        },
+                        grid: {
+                            color: 'rgba(148, 163, 184, 0.2)'
+                        }
+                    }
+                }
+            }
+        });
+    }
+</script>
+</body>
+</html>
+

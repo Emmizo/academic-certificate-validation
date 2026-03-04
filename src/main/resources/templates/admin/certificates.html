@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      th:replace="admin-layout :: adminLayout(~{::title}, ~{::main})">
+<head>
+    <title>Certificates</title>
+</head>
+<body>
+<main>
+    <div class="flex items-start justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900">Certificates</h1>
+            <p class="mt-1 text-sm text-slate-600">All issued certificates and their details.</p>
+        </div>
+        <a th:href="@{/admin/issue}"
+           class="rounded-lg bg-[#164655] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0f303a]">
+            Issue New
+        </a>
+    </div>
+
+    <div class="mt-6 rounded-2xl border border-slate-200 bg-white overflow-x-auto">
+        <div th:if="${#lists.isEmpty(certificates)}" class="p-8 text-center">
+            <div class="text-lg font-semibold text-slate-900">No certificates yet</div>
+            <div class="mt-1 text-sm text-slate-600">Issue your first certificate to see it listed here.</div>
+            <div class="mt-4">
+                <a th:href="@{/admin/issue}"
+                   class="inline-flex rounded-lg bg-[#164655] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0f303a]">
+                    Issue Certificate
+                </a>
+            </div>
+        </div>
+
+        <table th:if="${!#lists.isEmpty(certificates)}" class="min-w-full divide-y divide-slate-200">
+            <thead class="bg-slate-50">
+            <tr>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Certificate ID</th>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Student Name</th>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Degree</th>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Issue Date</th>
+                <th class="px-6 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Actions</th>
+            </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-slate-100">
+            <tr th:each="c : ${certificates}">
+                <td class="px-6 py-4 font-mono text-sm text-slate-900" th:text="${c.certificateId}"></td>
+                <td class="px-6 py-4 text-sm text-slate-900" th:text="${c.studentName}"></td>
+                <td class="px-6 py-4 text-sm text-slate-900" th:text="${c.degree}"></td>
+                <td class="px-6 py-4 text-sm text-slate-700" th:text="${c.issueDate}"></td>
+                <td class="px-6 py-4 text-right">
+                    <a th:href="@{/admin/certificates/{id}(id=${c.id})}"
+                       class="text-sm font-semibold text-[#164655] hover:text-[#0f303a]">
+                        View Details
+                    </a>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+</body>
+</html>
+

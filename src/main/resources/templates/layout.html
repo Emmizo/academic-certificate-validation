@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="https://www.thymeleaf.org/thymeleaf-extras-springsecurity6"
+      th:fragment="layout(title, content)">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title th:replace="${title}">CertSign</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-white text-slate-900 flex flex-col">
+
+<nav class="bg-[#164655] sticky top-0 z-40">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+        <a th:href="@{/}" class="flex items-center gap-2 font-semibold text-white">
+            <span class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 text-white shadow-sm">CS</span>
+            <span class="tracking-tight">CertSign</span>
+        </a>
+
+        <button class="md:hidden inline-flex items-center justify-center rounded-md p-2 text-white/80 hover:bg-white/10 transition-colors duration-150"
+                type="button"
+                aria-label="Toggle navigation"
+                onclick="document.getElementById('main-nav').classList.toggle('hidden')">
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+            </svg>
+        </button>
+
+        <div id="main-nav" class="hidden md:flex md:items-center md:gap-3 text-sm">
+            <a th:href="@{/verify}"
+               th:classappend="${#httpServletRequest != null and #httpServletRequest.requestURI.startsWith('/verify')} ? ' bg-white/10 text-white' : ''"
+               class="block px-3 py-2 rounded-md font-medium text-white/80 hover:bg-white/10 transition-colors duration-150">
+                Verify Certificate
+            </a>
+
+            <div sec:authorize="hasRole('ADMIN')" class="mt-2 md:mt-0 md:flex md:items-center md:gap-1">
+                <a th:href="@{/admin/dashboard}"
+                   th:classappend="${#httpServletRequest != null and #httpServletRequest.requestURI.startsWith('/admin/dashboard')} ? ' bg-white/10 text-white' : ''"
+                   class="block px-3 py-2 rounded-md font-medium text-white/80 hover:bg-white/10 transition-colors duration-150">
+                    Dashboard
+                </a>
+                <a th:href="@{/admin/students}"
+                   th:classappend="${#httpServletRequest != null and #httpServletRequest.requestURI.startsWith('/admin/students')} ? ' bg-white/10 text-white' : ''"
+                   class="block px-3 py-2 rounded-md font-medium text-white/80 hover:bg-white/10 transition-colors duration-150">
+                    Students
+                </a>
+                <a th:href="@{/admin/issue}"
+                   th:classappend="${#httpServletRequest != null and #httpServletRequest.requestURI.startsWith('/admin/issue')} ? ' bg-white/10 text-white' : ''"
+                   class="block px-3 py-2 rounded-md font-medium text-white/80 hover:bg-white/10 transition-colors duration-150">
+                    Issue
+                </a>
+                <a th:href="@{/admin/keys}"
+                   th:classappend="${#httpServletRequest != null and #httpServletRequest.requestURI.startsWith('/admin/keys')} ? ' bg-white/10 text-white' : ''"
+                   class="block px-3 py-2 rounded-md font-medium text-white/80 hover:bg-white/10 transition-colors duration-150">
+                    Keys
+                </a>
+                <a th:href="@{/admin/certificates}"
+                   th:classappend="${#httpServletRequest != null and #httpServletRequest.requestURI.startsWith('/admin/certificates')} ? ' bg-white/10 text-white' : ''"
+                   class="block px-3 py-2 rounded-md font-medium text-white/80 hover:bg-white/10 transition-colors duration-150">
+                    Certificates
+                </a>
+                <a th:href="@{/logout}"
+                   class="mt-2 md:mt-0 block px-3 py-2 rounded-md font-semibold text-[#164655] bg-white hover:bg-slate-100 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#164655]">
+                    Logout
+                </a>
+            </div>
+
+            <div sec:authorize="!isAuthenticated()" class="mt-2 md:mt-0">
+                <a th:href="@{/login}"
+                   class="block px-3 py-2 rounded-md font-semibold text-[#164655] bg-white hover:bg-slate-100 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#164655]">
+                    Login
+                </a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<main class="flex-1 w-full">
+    <div class="max-w-6xl mx-auto px-4 py-10" th:replace="${content}">
+        <div class="p-6 bg-white rounded-xl border border-slate-200">Content</div>
+    </div>
+</main>
+
+<footer class="border-t border-slate-200 bg-white">
+    <div class="max-w-6xl mx-auto px-4 py-6 text-xs sm:text-sm text-slate-600 text-center sm:text-left">
+        Secured with RSA-2048 + SHA-256 Digital Signatures
+    </div>
+</footer>
+
+</body>
+</html>
+

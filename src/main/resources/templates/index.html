@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      th:replace="layout :: layout(~{::title}, ~{::main})">
+<head>
+    <title>Tamper-Proof Academic Certificates</title>
+</head>
+<body>
+<main class="space-y-12">
+    <!-- Hero -->
+    <section class="relative overflow-hidden bg-[#164655] px-6 py-10 sm:px-10 sm:py-12 min-h-[calc(100vh-6rem)] flex items-center">
+        <div class="relative grid grid-cols-1 lg:grid-cols-2 gap-10 items-center w-full">
+            <div>
+                <p class="inline-flex items-center gap-2 rounded-full bg-white/5 px-3 py-1 text-xs font-medium text-white/90 ring-1 ring-white/15">
+                    <span class="inline-flex h-2 w-2 rounded-full bg-white"></span>
+                    Government‑style academic credential verification
+                </p>
+                <h1 class="mt-4 text-3xl sm:text-4xl md:text-5xl font-semibold tracking-tight text-white">
+                    Tamper‑Proof Academic Certificates
+                </h1>
+                <p class="mt-4 text-sm sm:text-base text-white/90 max-w-xl">
+                    CertSign lets your institution issue, digitally sign, and verify certificates using RSA‑2048 and SHA‑256,
+                    with a clear separation between the public verification portal and the secure admin console.
+                </p>
+
+                <div class="mt-6 flex flex-col sm:flex-row gap-3">
+                    <a th:href="@{/verify}"
+                       class="inline-flex items-center justify-center rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-[#164655] shadow-sm hover:bg-slate-100 hover:shadow-md transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#164655]">
+                        Verify a Certificate
+                    </a>
+                    <a th:href="@{/login}"
+                       class="inline-flex items-center justify-center rounded-xl border border-white/30 bg-white/5 px-5 py-2.5 text-sm font-semibold text-white hover:bg-white/10 hover:border-white/60 transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#164655]">
+                        Login
+                    </a>
+                </div>
+
+                <div class="mt-6 flex flex-wrap items-center gap-4 text-xs text-white/80">
+                    <div class="flex items-center gap-2">
+                        <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-800 text-[0.6rem] font-semibold">RSA</span>
+                        <span>RSA‑2048 digital signatures</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-800 text-[0.6rem] font-semibold">SHA</span>
+                        <span>SHA‑256 document hashing</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-800 text-[0.6rem] font-semibold">AUDIT</span>
+                        <span>Full verification audit trail</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="relative">
+                <div class="mx-auto max-w-md rounded-2xl border border-white/10 bg-[#164655] p-5 shadow-lg shadow-black/40">
+                    <p class="text-xs font-semibold tracking-wide text-white/80 uppercase">Entry points</p>
+                    <div class="mt-3 space-y-3">
+                        <div class="rounded-xl border border-white/10 bg-white/10 px-4 py-3 flex items-center justify-between">
+                            <div>
+                                <div class="text-[0.7rem] font-semibold text-white uppercase tracking-wide opacity-80">Public portal</div>
+                                <div class="mt-1 text-sm font-semibold text-white">Certificate Verification</div>
+                                <div class="mt-1 text-xs text-white/80">Citizens, employers, and partners.</div>
+                            </div>
+                            <div class="hidden sm:flex h-10 w-10 items-center justify-center rounded-full bg-[#164655] text-white border border-white/40">
+                                <span class="text-xs font-semibold">ID</span>
+                            </div>
+                        </div>
+
+                        <div class="rounded-xl border border-white/10 bg-white/5 px-4 py-3 flex items-center justify-between">
+                            <div>
+                                <div class="text-[0.7rem] font-semibold text-white uppercase tracking-wide opacity-80">Administrator</div>
+                                <div class="mt-1 text-sm font-semibold text-white">Institution Console</div>
+                                <div class="mt-1 text-xs text-white/80">Key management, issuance, and reporting.</div>
+                            </div>
+                            <div class="hidden sm:flex h-10 w-10 items-center justify-center rounded-full bg-[#164655] text-white border border-white/40">
+                                <span class="text-xs font-semibold">ADM</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[0.7rem] text-white/85 flex items-center gap-2">
+                        <span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#164655] text-white border border-white/40">
+                            ✓
+                        </span>
+                        <span>Designed for official university or government exam boards that need verifiable digital credentials.</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How it works -->
+    <section class="space-y-6 max-w-5xl mx-auto">
+        <div class="text-center">
+            <h2 class="text-xl sm:text-2xl font-semibold text-slate-900 tracking-tight">How CertSign works</h2>
+            <p class="mt-1 text-sm text-slate-600 max-w-2xl mx-auto">A simple three‑step flow built on strong cryptography.</p>
+        </div>
+
+        <div class="rounded-3xl border border-slate-200 bg-white shadow-sm">
+            <div class="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-slate-100">
+                <div class="p-6 sm:p-7 flex flex-col gap-3">
+                    <div class="inline-flex items-center gap-2">
+                        <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#164655] text-white text-xs font-semibold">1</span>
+                        <span class="text-[0.7rem] font-semibold tracking-wide uppercase text-[#164655]">Issue</span>
+                    </div>
+                    <div>
+                        <div class="text-base font-semibold text-slate-900">Register the award</div>
+                        <div class="mt-1 text-sm text-slate-600">
+                            Admins capture student identity, program, institution, and issue date in the secure console.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-6 sm:p-7 flex flex-col gap-3">
+                    <div class="inline-flex items-center gap-2">
+                        <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#164655] text-white text-xs font-semibold">2</span>
+                        <span class="text-[0.7rem] font-semibold tracking-wide uppercase text-[#164655]">Sign</span>
+                    </div>
+                    <div>
+                        <div class="text-base font-semibold text-slate-900">Hash &amp; sign the record</div>
+                        <div class="mt-1 text-sm text-slate-600">
+                            CertSign hashes the canonical certificate data with SHA‑256 and signs the hash using RSA‑2048.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-6 sm:p-7 flex flex-col gap-3">
+                    <div class="inline-flex items-center gap-2">
+                        <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#164655] text-white text-xs font-semibold">3</span>
+                        <span class="text-[0.7rem] font-semibold tracking-wide uppercase text-[#164655]">Verify</span>
+                    </div>
+                    <div>
+                        <div class="text-base font-semibold text-slate-900">Public verification</div>
+                        <div class="mt-1 text-sm text-slate-600">
+                            Anyone can verify the certificate ID on the public portal; any change to the data breaks the signature.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Key benefits -->
+    <section class="space-y-4 max-w-5xl mx-auto">
+        <div class="text-center">
+            <h2 class="text-xl sm:text-2xl font-semibold text-slate-900 tracking-tight">Why institutions use CertSign</h2>
+            <p class="mt-1 text-sm text-slate-600 max-w-2xl mx-auto">Reduce paper, prevent forgery, and give graduates verifiable credentials they can share anywhere.</p>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div class="text-sm font-semibold text-slate-900">Fraud resistance</div>
+                <p class="mt-2 text-sm text-slate-600">Each certificate is bound to a digital signature; forged PDFs or screenshots fail verification immediately.</p>
+            </div>
+            <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div class="text-sm font-semibold text-slate-900">Operational simplicity</div>
+                <p class="mt-2 text-sm text-slate-600">Single Spring Boot application with an admin console and public verification — no separate frontend to deploy.</p>
+            </div>
+            <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div class="text-sm font-semibold text-slate-900">Audit‑ready logs</div>
+                <p class="mt-2 text-sm text-slate-600">Every verification is logged with timestamp, source IP, and result, helping you answer regulator and auditor queries.</p>
+            </div>
+        </div>
+    </section>
+</main>
+</body>
+</html>
+

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      th:replace="admin-layout :: adminLayout(~{::title}, ~{::main})">
+<head>
+    <title>Issue Certificate</title>
+</head>
+<body>
+<main>
+    <div class="flex items-start justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900">Issue and Sign Certificate</h1>
+            <p class="mt-1 text-sm text-slate-600">Fill out the details below to generate a signed certificate.</p>
+        </div>
+        <a th:href="@{/admin/certificates}"
+           class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50">
+            View Certificates
+        </a>
+    </div>
+
+    <div class="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div class="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6">
+            <div class="mb-4" th:if="${error != null}">
+                <div class="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800" th:text="${error}"></div>
+            </div>
+
+            <form th:action="@{/admin/issue}" th:object="${certificateRequest}" method="post" class="space-y-4">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700">Student</label>
+                        <select th:field="*{studentRefId}" required
+                                class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-[#164655]">
+                            <option value="" disabled selected>Choose a student...</option>
+                            <option th:each="s : ${students}"
+                                    th:value="${s.id}"
+                                    th:text="${s.studentNumber + ' - ' + s.fullName}">
+                            </option>
+                        </select>
+                        <p class="mt-1 text-xs text-slate-500">
+                            Need a new student?
+                            <a th:href="@{/admin/students/new}" class="font-semibold text-[#164655] hover:text-[#0f303a]">Create student record</a>.
+                        </p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700">Issue Date</label>
+                        <input th:field="*{issueDate}" type="date" required
+                               class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#164655]"/>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-700">Degree / Program</label>
+                    <input th:field="*{degree}" type="text" required
+                           class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#164655]"/>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-700">Institution</label>
+                    <input th:field="*{institution}" type="text" required
+                           class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#164655]"/>
+                </div>
+
+                <button type="submit"
+                        class="w-full rounded-lg bg-[#164655] px-4 py-2 font-semibold text-white hover:bg-[#0f303a] disabled:opacity-60 disabled:cursor-not-allowed"
+                        th:disabled="${hasActiveKey == false}">
+                    Issue and Sign Certificate
+                </button>
+            </form>
+        </div>
+
+        <div class="rounded-2xl border border-slate-200 bg-white p-6">
+            <h2 class="text-lg font-semibold text-slate-900">What happens on submit</h2>
+            <div class="mt-3 space-y-3 text-sm text-slate-600">
+                <div class="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                    Certificate data is converted into a canonical string format.
+                </div>
+                <div class="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                    The canonical string is hashed with SHA-256 to create a tamper-evident fingerprint.
+                </div>
+                <div class="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                    The hash is signed using the active RSA-2048 private key, producing a digital signature.
+                </div>
+                <div class="rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-900 text-xs"
+                     th:if="${hasActiveKey == false}">
+                    No active RSA key pair is currently available. Please go to the Keys page and generate a key pair
+                    before issuing certificates.
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+</body>
+</html>
+

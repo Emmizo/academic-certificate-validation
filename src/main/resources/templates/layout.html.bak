@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="https://www.thymeleaf.org/thymeleaf-extras-springsecurity6"
+      th:fragment="layout(title, content)">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title th:replace="${title}">CertSign</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-900">
+
+<nav class="bg-white border-b border-slate-200">
+    <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+        <a th:href="@{/}" class="flex items-center gap-2 font-semibold text-slate-900">
+            <span class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 text-white">CS</span>
+            <span>CertSign</span>
+        </a>
+
+        <div class="flex items-center gap-2">
+            <a th:href="@{/verify}"
+               class="px-3 py-2 rounded-md text-sm font-medium text-slate-700 hover:bg-slate-100">Verify Certificate</a>
+
+            <div sec:authorize="hasRole('ADMIN')" class="flex items-center gap-2">
+                <a th:href="@{/admin/dashboard}"
+                   class="px-3 py-2 rounded-md text-sm font-medium text-slate-700 hover:bg-slate-100">Dashboard</a>
+                <a th:href="@{/admin/issue}"
+                   class="px-3 py-2 rounded-md text-sm font-medium text-slate-700 hover:bg-slate-100">Issue</a>
+                <a th:href="@{/admin/keys}"
+                   class="px-3 py-2 rounded-md text-sm font-medium text-slate-700 hover:bg-slate-100">Keys</a>
+                <a th:href="@{/admin/certificates}"
+                   class="px-3 py-2 rounded-md text-sm font-medium text-slate-700 hover:bg-slate-100">Certificates</a>
+                <a th:href="@{/logout}"
+                   class="px-3 py-2 rounded-md text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700">Logout</a>
+            </div>
+
+            <div sec:authorize="!isAuthenticated()">
+                <a th:href="@{/login}"
+                   class="px-3 py-2 rounded-md text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700">Admin Login</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<main class="max-w-6xl mx-auto px-4 py-10" th:replace="${content}">
+    <div class="p-6 bg-white rounded-xl border border-slate-200">Content</div>
+</main>
+
+<footer class="border-t border-slate-200 bg-white">
+    <div class="max-w-6xl mx-auto px-4 py-6 text-sm text-slate-600">
+        Secured with RSA-2048 + SHA-256 Digital Signatures
+    </div>
+</footer>
+
+</body>
+</html>
+

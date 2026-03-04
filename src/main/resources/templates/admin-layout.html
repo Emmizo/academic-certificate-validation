@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="https://www.thymeleaf.org/thymeleaf-extras-springsecurity6"
+      th:fragment="adminLayout(title, content)">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title th:replace="${title}">CertSign Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-900 flex">
+
+<!-- Sidebar -->
+<aside class="hidden md:flex md:flex-col w-64 bg-[#164655] text-slate-100">
+    <div class="px-5 py-4 flex items-center gap-3 border-b border-[#0f303a]">
+        <div class="h-9 w-9 rounded-lg bg-white/10 flex items-center justify-center text-sm font-semibold">
+            CS
+        </div>
+        <div>
+            <div class="text-sm font-semibold tracking-tight">CertSign</div>
+            <div class="text-[0.7rem] text-slate-100/70">Admin Console</div>
+        </div>
+    </div>
+
+    <nav class="flex-1 overflow-y-auto px-3 py-4 text-sm space-y-6">
+        <div>
+            <div class="px-2 text-[0.7rem] font-semibold uppercase tracking-wide text-slate-200/70">Main</div>
+            <div class="mt-2 space-y-1">
+                <a th:href="@{/admin/dashboard}"
+                   th:classappend="${#httpServletRequest != null and #httpServletRequest.requestURI.startsWith('/admin/dashboard')} ? ' bg-white text-[#164655]' : ''"
+                   class="flex items-center gap-2 rounded-lg px-3 py-2 text-slate-100 hover:bg-white/10 hover:text-white transition-colors duration-150">
+                    <span class="h-4 w-4 rounded-full border border-white/40 flex items-center justify-center text-[0.55rem]">D</span>
+                    <span>Dashboard</span>
+                </a>
+                <a th:href="@{/admin/students}"
+                   th:classappend="${#httpServletRequest != null and #httpServletRequest.requestURI.startsWith('/admin/students')} ? ' bg-white text-[#164655]' : ''"
+                   class="flex items-center gap-2 rounded-lg px-3 py-2 text-slate-100 hover:bg-white/10 transition-colors duration-150">
+                    <span class="h-4 w-4 rounded-full border border-white/40 flex items-center justify-center text-[0.55rem]">S</span>
+                    <span>Students</span>
+                </a>
+                <a th:href="@{/admin/certificates}"
+                   th:classappend="${#httpServletRequest != null and #httpServletRequest.requestURI.startsWith('/admin/certificates')} ? ' bg-white text-[#164655]' : ''"
+                   class="flex items-center gap-2 rounded-lg px-3 py-2 text-slate-100 hover:bg-white/10 transition-colors duration-150">
+                    <span class="h-4 w-4 rounded-full border border-white/40 flex items-center justify-center text-[0.55rem]">C</span>
+                    <span>Certificates</span>
+                </a>
+            </div>
+        </div>
+
+        <div>
+            <div class="px-2 text-[0.7rem] font-semibold uppercase tracking-wide text-slate-200/70">Issuance</div>
+            <div class="mt-2 space-y-1">
+                <a th:href="@{/admin/issue}"
+                   th:classappend="${#httpServletRequest != null and #httpServletRequest.requestURI.startsWith('/admin/issue')} ? ' bg-white text-[#164655]' : ''"
+                   class="flex items-center gap-2 rounded-lg px-3 py-2 text-slate-100 hover:bg-white/10 transition-colors duration-150">
+                    <span class="h-4 w-4 rounded-full border border-white/40 flex items-center justify-center text-[0.55rem]">I</span>
+                    <span>Issue</span>
+                </a>
+                <a th:href="@{/admin/keys}"
+                   th:classappend="${#httpServletRequest != null and #httpServletRequest.requestURI.startsWith('/admin/keys')} ? ' bg-white text-[#164655]' : ''"
+                   class="flex items-center gap-2 rounded-lg px-3 py-2 text-slate-100 hover:bg-white/10 transition-colors duration-150">
+                    <span class="h-4 w-4 rounded-full border border-white/40 flex items-center justify-center text-[0.55rem]">K</span>
+                    <span>Keys</span>
+                </a>
+            </div>
+        </div>
+
+        <div>
+            <div class="px-2 text-[0.7rem] font-semibold uppercase tracking-wide text-slate-200/70">Public</div>
+            <a th:href="@{/verify}"
+               th:classappend="${#httpServletRequest != null and #httpServletRequest.requestURI.startsWith('/verify')} ? ' bg-white text-[#164655]' : ''"
+               class="mt-2 flex items-center gap-2 rounded-lg px-3 py-2 text-slate-100 hover:bg-white/10 transition-colors duration-150">
+                <span class="h-4 w-4 rounded-full border border-white/40 flex items-center justify-center text-[0.55rem]">V</span>
+                <span>Verify Portal</span>
+            </a>
+        </div>
+    </nav>
+
+    <div class="px-4 py-3 border-t border-[#0f303a] text-[0.7rem] text-slate-300/80">
+        <div sec:authorize="isAuthenticated()">
+            Logged in as
+            <span class="font-semibold text-white" sec:authentication="name">admin</span>
+        </div>
+        <div class="mt-1">
+            <a th:href="@{/logout}" class="text-slate-200 hover:text-white">Logout</a>
+        </div>
+    </div>
+</aside>
+
+<!-- Main content -->
+<div class="flex-1 flex flex-col min-w-0">
+    <!-- Top bar -->
+    <header class="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-slate-200 bg-white shadow-sm">
+        <div class="flex items-center gap-2 text-sm">
+            <span class="hidden sm:inline text-slate-500">CertSign Admin</span>
+        </div>
+        <div class="flex items-center gap-3">
+            <a th:href="@{/verify}"
+               class="hidden sm:inline-flex items-center rounded-full border border-[#164655] bg-white px-3 py-1 text-xs font-semibold text-[#164655] hover:bg-[#164655] hover:text-white transition-colors duration-150">
+                Public verification
+            </a>
+            <div class="flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
+                <span class="h-6 w-6 rounded-full bg-[#164655] text-white flex items-center justify-center text-[0.7rem]">
+                    AD
+                </span>
+                <span sec:authentication="name">admin</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 w-full bg-[#f3f5f7] pl-4 sm:pl-6">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 py-10" th:replace="${content}">
+            <div class="p-6 bg-white rounded-xl border border-slate-200">Content</div>
+        </div>
+    </main>
+</div>
+
+</body>
+</html>
+

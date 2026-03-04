@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      th:replace="admin-layout :: adminLayout(~{::title}, ~{::main})">
+<head>
+    <title>Manage RSA Keys</title>
+</head>
+<body>
+<main>
+    <div class="flex items-start justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900">Key Management</h1>
+            <p class="mt-1 text-sm text-slate-600">View the active public key and generate a new RSA key pair.</p>
+        </div>
+        <form id="generateKeyForm" th:action="@{/admin/keys/generate}" method="post">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+            <button type="submit"
+                    class="rounded-lg bg-[#164655] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0f303a]">
+                Generate New Key Pair
+            </button>
+        </form>
+    </div>
+
+    <div class="mt-6 rounded-2xl border border-slate-200 bg-white p-6">
+        <div class="flex items-start justify-between gap-4">
+            <div>
+                <h2 class="text-lg font-semibold text-slate-900">Active Public Key</h2>
+                <p class="mt-1 text-sm text-slate-600" th:if="${activeKey != null}"
+                   th:text="'Generated: ' + ${#temporals.format(activeKey.createdAt, 'yyyy-MM-dd HH:mm:ss')}"></p>
+            </div>
+            <button type="button"
+                    class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50"
+                    onclick="copyKey()"
+                    th:disabled="${activeKey == null}">
+                Copy
+            </button>
+        </div>
+
+        <div class="mt-4" th:if="${activeKey != null}">
+            <textarea id="publicKey" readonly
+                      class="w-full h-44 rounded-xl border border-slate-200 bg-slate-50 p-3 font-mono text-xs text-slate-800"
+                      th:text="${activeKey.publicKey}"></textarea>
+        </div>
+
+        <div class="mt-4" th:if="${activeKey == null}">
+            <div class="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                No active key pair found. Generate a key pair to start issuing signed certificates.
+            </div>
+        </div>
+
+        <div class="mt-6 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+            <div class="font-semibold text-slate-900">Security Notice</div>
+            <div class="mt-1">Private keys are stored securely and never displayed.</div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div id="confirmModal"
+         class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 px-4">
+        <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+            <h2 class="text-lg font-semibold text-slate-900">Rotate RSA Key Pair</h2>
+            <p class="mt-2 text-sm text-slate-600">
+                Generating a new key pair will make the new key active for all future certificates.
+                Existing certificates remain verifiable because they keep using their original public key.
+            </p>
+            <div class="mt-4 flex justify-end gap-2">
+                <button type="button"
+                        class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50"
+                        onclick="hideConfirmModal()">
+                    Cancel
+                </button>
+                <button type="button"
+                        class="rounded-lg bg-[#164655] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0f303a]"
+                        onclick="confirmGenerate()">
+                    Yes, generate new keys
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function copyKey() {
+            const el = document.getElementById('publicKey');
+            if (!el) return;
+            el.select();
+            el.setSelectionRange(0, 999999);
+            navigator.clipboard.writeText(el.value);
+        }
+
+        const form = document.getElementById('generateKeyForm');
+        if (form) {
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+                showConfirmModal();
+            });
+        }
+
+        function showConfirmModal() {
+            const modal = document.getElementById('confirmModal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+        }
+
+        function hideConfirmModal() {
+            const modal = document.getElementById('confirmModal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+        }
+
+        function confirmGenerate() {
+            hideConfirmModal();
+            const form = document.getElementById('generateKeyForm');
+            if (form) {
+                form.submit();
+            }
+        }
+    </script>
+</main>
+</body>
+</html>
+
