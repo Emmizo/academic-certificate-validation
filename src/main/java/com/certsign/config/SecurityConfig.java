@@ -27,7 +27,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/", "/login", "/verify", "/verify/result").permitAll()
                         .requestMatchers("/css/**", "/js/**", "/images/**", "/webjars/**").permitAll()
-                        .requestMatchers("/admin/**").hasRole("ADMIN")
+                        // Allow both ADMIN and SIGNER roles to access admin console
+                        .requestMatchers("/admin/**").hasAnyRole("ADMIN", "SIGNER")
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form

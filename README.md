@@ -13,15 +13,27 @@ Single Spring Boot application that issues and verifies **tamper-evident academi
 
 ## Setup
 
-1. Create the MySQL database:
+1. Create the MySQL database. The name **must match** the one used in `spring.datasource.url` inside `src/main/resources/application.properties` (by default we use `certsign_db`):
 
 ```sql
 CREATE DATABASE certsign_db;
 ```
 
+You do **not** need any absolute path from this README; just run the SQL in your own MySQL server.
+
+You can optionally import the prepared schema + sample data from:
+
+- `src/main/resources/database/certsign_db.sql`
+
+using your preferred MySQL tool (MySQL Workbench, CLI, etc.).
+
 2. Update your MySQL password in `src/main/resources/application.properties`:
 
 - `spring.datasource.password=yourpassword`
+
+If you changed the database name, also update:
+
+- `spring.datasource.url=jdbc:mysql://localhost:3306/<certsign_db>?useSSL=false&serverTimezone=UTC`
 
 3. Run the application:
 
@@ -33,14 +45,19 @@ mvn spring-boot:run
 
 - `http://localhost:8080`
 
-5. Login with default admin:
+5. Login with default accounts:
 
-- Username: `admin`
-- Password: `Admin@123`
+- **Admin** – full access to keys, issuing, and students  
+  - Username: `admin`  
+  - Password: `Admin@123`
+- **Signer** – user responsible for issuing/signing certificates (same UI as admin today)  
+  - Username: `signer`  
+  - Password: `Signer@123`
+- **Verifier (staff)** – read-only reviewer/verification user inside the institution  
+  - Username: `verifier`  
+  - Password: `Verifier@123`
 
-On first startup, the app seeds the default admin user and prints:
-
-- `Default admin created: username=admin password=Admin@123`
+On first startup, the app seeds these users and prints their credentials to the console.
 
 ## Workflow
 

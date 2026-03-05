@@ -6,6 +6,7 @@ package com.certsign.model;
 
 public enum UserRole {
     ADMIN,
+    SIGNER,
     VERIFIER
 }
 
