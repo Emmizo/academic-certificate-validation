@@ -95,6 +95,49 @@ public class CertificateService {
 
     @Transactional
     /**
+     * Updates an existing certificate's core fields and re‑signs it so that any changes
+     * (for example correcting a name, degree or institution) are reflected in the
+     * cryptographic hash and digital signature.
+     */
+    public Certificate updateCertificate(Long certificateId, CertificateRequest req) {
+        Certificate cert = certificateRepository.findById(certificateId)
+                .orElseThrow(() -> new IllegalArgumentException("Certificate not found"));
+
+        // Optionally update the linked student and snapshot fields if a new student is selected
+        if (req.getStudentRefId() != null) {
+            Student student = studentRepository.findById(req.getStudentRefId())
+                    .orElseThrow(() -> new IllegalArgumentException("Selected student not found"));
+            cert.setStudent(student);
+            cert.setStudentName(student.getFullName());
+            cert.setStudentId(student.getStudentNumber());
+        }
+
+        if (req.getDegree() != null) {
+            cert.setDegree(req.getDegree());
+        }
+        if (req.getInstitution() != null) {
+            cert.setInstitution(req.getInstitution());
+        }
+        if (req.getIssueDate() != null) {
+            cert.setIssueDate(req.getIssueDate());
+        }
+
+        if (cert.getKeyPair() == null) {
+            throw new IllegalStateException("Certificate has no associated key pair for re-signing");
+        }
+
+        String canonical = cryptoService.buildCanonicalString(cert);
+        String hash = cryptoService.hashWithSHA256(canonical);
+        String signature = cryptoService.signData(hash, cert.getKeyPair().getPrivateKeyEncrypted());
+
+        cert.setDocumentHash(hash);
+        cert.setDigitalSignature(signature);
+
+        return certificateRepository.save(cert);
+    }
+
+    @Transactional
+    /**
      * Verifies a certificate by ID using both the stored SHA‑256 hash and RSA signature.
      * <p>
      * It rebuilds the canonical string, recomputes the SHA‑256 hash, verifies the RSA

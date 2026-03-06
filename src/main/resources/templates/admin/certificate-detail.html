@@ -16,6 +16,10 @@
                class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50">
                 Back to List
             </a>
+            <a th:href="@{/admin/certificates/{id}/edit(id=${certificate.id})}"
+               class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50">
+                Edit Certificate
+            </a>
             <a th:href="@{/admin/certificates/{id}/pdf(id=${certificate.id})}"
                class="rounded-lg border border-[#164655] bg-white px-4 py-2 text-sm font-semibold text-[#164655] hover:bg-[#164655] hover:text-white">
                 Download PDF

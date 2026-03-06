@@ -199,5 +199,117 @@ class CertificateServiceTest {
         assertThat(result.getFailureReason()).isEqualTo("Document tampered");
         assertThat(result.getCertificate()).isNull();
     }
+
+    @Test
+    void verifyCertificate_shouldReturnInvalidWhenNameChangedInDatabase() {
+        // Arrange: issue a valid certificate, then simulate direct DB edit of the name only
+        var keyMap = cryptoService.generateRSAKeyPair();
+        KeyPair kp = KeyPair.builder()
+                .id(2L)
+                .publicKey(keyMap.get("publicKey"))
+                .privateKeyEncrypted(keyMap.get("privateKey"))
+                .createdAt(LocalDateTime.now())
+                .active(true)
+                .build();
+
+        Certificate cert = Certificate.builder()
+                .id(44L)
+                .certificateId("CERT-NAME-TAMPER")
+                .studentName("Original Name")
+                .studentId("STU-004")
+                .degree("BSc Computer Science")
+                .institution("CertSign University")
+                .issueDate(LocalDate.now())
+                .keyPair(kp)
+                .issuedBy(User.builder().id(6L).username("issuer").build())
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        // Compute correct hash and signature for original content
+        String canonical = cryptoService.buildCanonicalString(cert);
+        String hash = cryptoService.hashWithSHA256(canonical);
+        String signature = cryptoService.signData(hash, kp.getPrivateKeyEncrypted());
+        cert.setDocumentHash(hash);
+        cert.setDigitalSignature(signature);
+
+        // Simulate DB tampering: change only the name column while leaving hash + signature untouched
+        cert.setStudentName("Original Name Jr.");
+
+        when(certificateRepository.findByCertificateId("CERT-NAME-TAMPER"))
+                .thenReturn(Optional.of(cert));
+
+        // Act
+        VerificationResult result = certificateService.verifyCertificate("CERT-NAME-TAMPER", "127.0.0.1");
+
+        // Assert: any change to the name field makes the certificate invalid
+        assertThat(result.isValid()).isFalse();
+        assertThat(result.getFailureReason()).isEqualTo("Document tampered");
+        assertThat(result.getCertificate()).isNull();
+    }
+
+    @Test
+    void updateCertificate_shouldReSignWhenFieldsChange() {
+        // Arrange: start from a valid, issued certificate
+        var keyMap = cryptoService.generateRSAKeyPair();
+        KeyPair kp = KeyPair.builder()
+                .id(3L)
+                .publicKey(keyMap.get("publicKey"))
+                .privateKeyEncrypted(keyMap.get("privateKey"))
+                .createdAt(LocalDateTime.now())
+                .active(true)
+                .build();
+
+        Student student = Student.builder()
+                .id(20L)
+                .studentNumber("STU-UPDATE-1")
+                .fullName("Original Name")
+                .status(StudentStatus.ACTIVE)
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+
+        Certificate cert = Certificate.builder()
+                .id(50L)
+                .certificateId("CERT-UPDATE-1")
+                .studentName(student.getFullName())
+                .studentId(student.getStudentNumber())
+                .student(student)
+                .degree("Old Degree")
+                .institution("Old Institution")
+                .issueDate(LocalDate.now().minusDays(1))
+                .keyPair(kp)
+                .issuedBy(User.builder().id(7L).username("issuer").build())
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        String canonical = cryptoService.buildCanonicalString(cert);
+        String hash = cryptoService.hashWithSHA256(canonical);
+        String signature = cryptoService.signData(hash, kp.getPrivateKeyEncrypted());
+        cert.setDocumentHash(hash);
+        cert.setDigitalSignature(signature);
+
+        when(certificateRepository.findById(50L)).thenReturn(Optional.of(cert));
+        when(studentRepository.findById(student.getId())).thenReturn(Optional.of(student));
+        when(certificateRepository.save(any(Certificate.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0, Certificate.class));
+
+        CertificateRequest updateReq = new CertificateRequest();
+        updateReq.setStudentRefId(student.getId());
+        updateReq.setDegree("New Degree");
+        updateReq.setInstitution("New Institution");
+        updateReq.setIssueDate(LocalDate.now());
+
+        // Act: update + re-sign
+        Certificate updated = certificateService.updateCertificate(50L, updateReq);
+
+        // Assert: hash and signature are regenerated and certificate still verifies
+        assertThat(updated.getDegree()).isEqualTo("New Degree");
+        assertThat(updated.getInstitution()).isEqualTo("New Institution");
+        assertThat(updated.getDocumentHash()).isNotEqualTo(hash);
+        assertThat(updated.getDigitalSignature()).isNotEqualTo(signature);
+
+        VerificationResult result = certificateService.verifyCertificate("CERT-UPDATE-1", "127.0.0.1");
+        assertThat(result.isValid()).isTrue();
+    }
 }
 

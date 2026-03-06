@@ -213,6 +213,56 @@ public class AdminController {
     }
 
     /**
+     * Displays an edit form for an existing certificate so that admins can correct
+     * fields such as student, degree, institution, or issue date. Saving will
+     * regenerate the document hash and digital signature.
+     */
+    @GetMapping("/admin/certificates/{id}/edit")
+    public String editCertificate(@PathVariable("id") Long id, Model model) {
+        var cert = certificateRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Certificate not found"));
+
+        CertificateRequest req = new CertificateRequest();
+        if (cert.getStudent() != null) {
+            req.setStudentRefId(cert.getStudent().getId());
+        }
+        req.setDegree(cert.getDegree());
+        req.setInstitution(cert.getInstitution());
+        req.setIssueDate(cert.getIssueDate());
+
+        model.addAttribute("certificate", cert);
+        model.addAttribute("certificateRequest", req);
+        model.addAttribute("students", loadActiveStudents());
+        model.addAttribute("error", null);
+        return "admin/certificate-edit";
+    }
+
+    /**
+     * Handles submission of the edit certificate form, updating the certificate and
+     * re‑signing it via {@link CertificateService#updateCertificate(Long, CertificateRequest)}.
+     */
+    @PostMapping("/admin/certificates/{id}/edit")
+    public String editCertificateSubmit(
+            @PathVariable("id") Long id,
+            @ModelAttribute CertificateRequest certificateRequest,
+            Model model
+    ) {
+        String err = validate(certificateRequest);
+        if (err != null) {
+            var cert = certificateRepository.findById(id)
+                    .orElseThrow(() -> new IllegalArgumentException("Certificate not found"));
+            model.addAttribute("certificate", cert);
+            model.addAttribute("certificateRequest", certificateRequest);
+            model.addAttribute("students", loadActiveStudents());
+            model.addAttribute("error", err);
+            return "admin/certificate-edit";
+        }
+
+        var updated = certificateService.updateCertificate(id, certificateRequest);
+        return "redirect:/admin/certificates/" + updated.getId();
+    }
+
+    /**
      * Runs a local signature self‑test for a certificate, without modifying any data,
      * and re-renders the detail page with the results.
      */

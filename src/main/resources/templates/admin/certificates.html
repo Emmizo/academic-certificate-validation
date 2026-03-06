@@ -45,10 +45,14 @@
                 <td class="px-6 py-4 text-sm text-slate-900" th:text="${c.studentName}"></td>
                 <td class="px-6 py-4 text-sm text-slate-900" th:text="${c.degree}"></td>
                 <td class="px-6 py-4 text-sm text-slate-700" th:text="${c.issueDate}"></td>
-                <td class="px-6 py-4 text-right">
+                <td class="px-6 py-4 text-right space-x-3">
                     <a th:href="@{/admin/certificates/{id}(id=${c.id})}"
                        class="text-sm font-semibold text-[#164655] hover:text-[#0f303a]">
                         View Details
+                    </a>
+                    <a th:href="@{/admin/certificates/{id}/edit(id=${c.id})}"
+                       class="text-sm font-semibold text-slate-600 hover:text-slate-900">
+                        Edit
                     </a>
                 </td>
             </tr>
