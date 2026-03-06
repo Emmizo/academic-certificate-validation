@@ -292,6 +292,10 @@ class CertificateServiceTest {
         when(studentRepository.findById(student.getId())).thenReturn(Optional.of(student));
         when(certificateRepository.save(any(Certificate.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0, Certificate.class));
+        // verifyCertificate will look up by certificateId; return the same instance so that
+        // the updated hash/signature are used during verification
+        when(certificateRepository.findByCertificateId("CERT-UPDATE-1"))
+                .thenReturn(Optional.of(cert));
 
         CertificateRequest updateReq = new CertificateRequest();
         updateReq.setStudentRefId(student.getId());
