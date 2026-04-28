@@ -87,6 +87,41 @@ public class UserAdminController {
         return "redirect:/admin/users?updated=1";
     }
 
+    @GetMapping("/admin/users/{id}/edit")
+    public String editUserForm(@PathVariable("id") Long id, Model model) {
+        var user = userManagementService.getUser(id);
+        model.addAttribute("roles", Arrays.asList(UserRole.values()));
+        model.addAttribute("userId", user.getId());
+        model.addAttribute("username", user.getUsername());
+        model.addAttribute("email", user.getEmail());
+        model.addAttribute("selectedRole", user.getRole());
+        model.addAttribute("error", null);
+        return "admin/user-edit";
+    }
+
+    @PostMapping("/admin/users/{id}")
+    public String updateUser(
+            @PathVariable("id") Long id,
+            @RequestParam("username") String username,
+            @RequestParam("email") String email,
+            @RequestParam("role") UserRole role,
+            @RequestParam(value = "newPassword", required = false) String newPassword,
+            Model model
+    ) {
+        try {
+            userManagementService.updateUser(id, username, email, role, newPassword);
+            return "redirect:/admin/users?updated=1";
+        } catch (IllegalArgumentException ex) {
+            model.addAttribute("roles", Arrays.asList(UserRole.values()));
+            model.addAttribute("userId", id);
+            model.addAttribute("username", username);
+            model.addAttribute("email", email);
+            model.addAttribute("selectedRole", role);
+            model.addAttribute("error", ex.getMessage());
+            return "admin/user-edit";
+        }
+    }
+
     @GetMapping("/forgot-password")
     public String forgotPasswordForm() {
         return "forgot-password";

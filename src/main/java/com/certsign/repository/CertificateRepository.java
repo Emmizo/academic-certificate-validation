@@ -20,5 +20,7 @@ public interface CertificateRepository extends JpaRepository<Certificate, Long> 
     Optional<Certificate> findFirstByOrderByCreatedAtDesc();
 
     long countByApprovalStatus(CertificateApprovalStatus approvalStatus);
+
+    List<Certificate> findByStudent_IdAndApprovalStatusOrderByCreatedAtDesc(Long studentId, CertificateApprovalStatus approvalStatus);
 }
 

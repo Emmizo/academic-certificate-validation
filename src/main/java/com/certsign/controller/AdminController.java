@@ -19,9 +19,11 @@ import com.certsign.repository.UserRepository;
 import com.certsign.service.CertificatePdfService;
 import com.certsign.service.CertificateService;
 import com.certsign.service.CryptoService;
+import com.certsign.service.MailService;
 import java.time.LocalDate;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.springframework.http.HttpHeaders;
@@ -47,6 +49,7 @@ public class AdminController {
     private final CryptoService cryptoService;
     private final CertificateService certificateService;
     private final CertificatePdfService certificatePdfService;
+    private final MailService mailService;
 
     /**
      * Creates the admin controller that wires repositories and cryptographic services
@@ -60,7 +63,8 @@ public class AdminController {
             UserRepository userRepository,
             CryptoService cryptoService,
             CertificateService certificateService,
-            CertificatePdfService certificatePdfService
+            CertificatePdfService certificatePdfService,
+            MailService mailService
     ) {
         this.certificateRepository = certificateRepository;
         this.keyPairRepository = keyPairRepository;
@@ -70,6 +74,7 @@ public class AdminController {
         this.cryptoService = cryptoService;
         this.certificateService = certificateService;
         this.certificatePdfService = certificatePdfService;
+        this.mailService = mailService;
     }
 
     /**
@@ -150,7 +155,17 @@ public class AdminController {
      */
     @GetMapping("/admin/certificates")
     public String certificates(Model model) {
-        model.addAttribute("certificates", certificateRepository.findAllByOrderByCreatedAtDesc());
+        var certificates = certificateRepository.findAllByOrderByCreatedAtDesc();
+        Map<Long, String> validityById = new HashMap<>();
+        for (var cert : certificates) {
+            if (cert.getApprovalStatus() == CertificateApprovalStatus.PENDING_APPROVAL) {
+                validityById.put(cert.getId(), "PENDING_APPROVAL");
+            } else {
+                validityById.put(cert.getId(), isCertificateCryptographicallyValid(cert) ? "VALID" : "INVALID");
+            }
+        }
+        model.addAttribute("certificates", certificates);
+        model.addAttribute("validityById", validityById);
         return "admin/certificates";
     }
 
@@ -341,8 +356,86 @@ public class AdminController {
         if (approver.getRole() != UserRole.ADMIN) {
             throw new IllegalStateException("Only admins can approve certificates.");
         }
-        certificateService.approveCertificate(id, approver);
+        var approved = certificateService.approveCertificate(id, approver);
+
+        String studentEmail = approved.getStudent() != null ? approved.getStudent().getEmail() : null;
+        if (studentEmail != null && !studentEmail.trim().isEmpty()) {
+            byte[] pdfBytes = certificatePdfService.renderCertificatePdf(approved);
+            String filename = (approved.getCertificateId() != null ? approved.getCertificateId() : "certificate") + ".pdf";
+            String subject = "Your certificate has been approved";
+            String body = """
+                    Hello %s,
+
+                    Your certificate (%s) has been approved by admin.
+                    Please find the approved certificate PDF attached.
+
+                    Regards,
+                    CertSign
+                    """.formatted(
+                    approved.getStudentName() != null ? approved.getStudentName() : "Student",
+                    approved.getCertificateId()
+            );
+            mailService.sendWithAttachment(
+                    studentEmail.trim(),
+                    subject,
+                    body,
+                    filename,
+                    pdfBytes,
+                    MediaType.APPLICATION_PDF_VALUE
+            );
+        }
+
         return "redirect:/admin/certificates/" + id;
+    }
+
+    @PostMapping("/admin/certificates/{id}/resend-email")
+    public String resendCertificateEmail(@PathVariable("id") Long id, Authentication auth) {
+        User actor = userRepository.findByUsername(auth.getName())
+                .orElseThrow(() -> new IllegalStateException("Authenticated user not found"));
+        if (actor.getRole() != UserRole.ADMIN) {
+            throw new IllegalStateException("Only admins can resend certificate emails.");
+        }
+
+        var cert = certificateRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Certificate not found"));
+        if (cert.getApprovalStatus() == CertificateApprovalStatus.PENDING_APPROVAL) {
+            return "redirect:/admin/certificates?resendError=notApproved";
+        }
+        if (!isCertificateCryptographicallyValid(cert)) {
+            return "redirect:/admin/certificates?resendError=invalid";
+        }
+        if (cert.getStudent() == null || isBlank(cert.getStudent().getEmail())) {
+            return "redirect:/admin/certificates?resendError=emailMissing";
+        }
+
+        String studentEmail = cert.getStudent().getEmail().trim();
+        byte[] pdfBytes = certificatePdfService.renderCertificatePdf(cert);
+        String filename = (cert.getCertificateId() != null ? cert.getCertificateId() : "certificate") + ".pdf";
+        String subject = "Certificate copy: " + cert.getCertificateId();
+        String body = """
+                Hello %s,
+
+                As requested, here is your certificate copy attached as PDF.
+                Certificate ID: %s
+
+                Regards,
+                CertSign
+                """.formatted(
+                cert.getStudentName() != null ? cert.getStudentName() : "Student",
+                cert.getCertificateId()
+        );
+        boolean sent = mailService.sendWithAttachment(
+                studentEmail,
+                subject,
+                body,
+                filename,
+                pdfBytes,
+                MediaType.APPLICATION_PDF_VALUE
+        );
+        if (!sent) {
+            return "redirect:/admin/certificates?resendError=mail";
+        }
+        return "redirect:/admin/certificates?resendSent=1";
     }
 
     /**
@@ -374,6 +467,18 @@ public class AdminController {
         return studentRepository.findAll().stream()
                 .filter(s -> s.getStatus() == StudentStatus.ACTIVE)
                 .toList();
+    }
+
+    private boolean isCertificateCryptographicallyValid(com.certsign.model.Certificate cert) {
+        if (cert == null || cert.getKeyPair() == null || isBlank(cert.getDocumentHash()) || isBlank(cert.getDigitalSignature())) {
+            return false;
+        }
+        String canonical = cryptoService.buildCanonicalString(cert);
+        String rebuiltHash = cryptoService.hashWithSHA256(canonical);
+        if (!rebuiltHash.equalsIgnoreCase(cert.getDocumentHash())) {
+            return false;
+        }
+        return cryptoService.verifySignature(rebuiltHash, cert.getDigitalSignature(), cert.getKeyPair().getPublicKey());
     }
 }
 

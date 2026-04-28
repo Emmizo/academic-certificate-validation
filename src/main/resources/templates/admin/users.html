@@ -49,6 +49,11 @@
                         </span>
                     </td>
                     <td class="px-6 py-4">
+                        <div class="flex items-center gap-2">
+                        <a th:href="@{/admin/users/{id}/edit(id=${user.id})}"
+                           class="rounded-md px-2 py-1 text-sm font-semibold text-[#164655] hover:bg-slate-100 hover:text-[#0f303a]">
+                            Edit
+                        </a>
                         <form th:action="@{/admin/users/{id}/role(id=${user.id})}" method="post" class="flex items-center gap-2">
                             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
                             <select name="role" class="rounded-lg border border-slate-300 px-2 py-1 bg-white">
@@ -65,6 +70,7 @@
                                 Save
                             </button>
                         </form>
+                        </div>
                     </td>
                 </tr>
                 </tbody>

@@ -78,6 +78,59 @@ public class UserManagementService {
         userRepository.save(user);
     }
 
+    public User getUser(Long userId) {
+        if (userId == null) {
+            throw new IllegalArgumentException("User not found.");
+        }
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found."));
+    }
+
+    @Transactional
+    public void updateUser(Long userId, String username, String email, UserRole role, String newPassword) {
+        if (userId == null) {
+            throw new IllegalArgumentException("User not found.");
+        }
+        if (isBlank(username)) {
+            throw new IllegalArgumentException("Username is required.");
+        }
+        if (isBlank(email)) {
+            throw new IllegalArgumentException("Email is required.");
+        }
+        if (role == null) {
+            throw new IllegalArgumentException("Role is required.");
+        }
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found."));
+
+        String normalizedUsername = username.trim();
+        String normalizedEmail = email.trim().toLowerCase();
+
+        userRepository.findByUsername(normalizedUsername).ifPresent(existing -> {
+            if (!existing.getId().equals(userId)) {
+                throw new IllegalArgumentException("Username already exists.");
+            }
+        });
+        userRepository.findByEmail(normalizedEmail).ifPresent(existing -> {
+            if (!existing.getId().equals(userId)) {
+                throw new IllegalArgumentException("Email already exists.");
+            }
+        });
+
+        user.setUsername(normalizedUsername);
+        user.setEmail(normalizedEmail);
+        user.setRole(role);
+
+        if (!isBlank(newPassword)) {
+            if (newPassword.length() < 8) {
+                throw new IllegalArgumentException("New password must be at least 8 characters.");
+            }
+            user.setPasswordHash(passwordEncoder.encode(newPassword));
+        }
+
+        userRepository.save(user);
+    }
+
     @Transactional
     public String requestPasswordReset(String email) {
         if (isBlank(email)) {
