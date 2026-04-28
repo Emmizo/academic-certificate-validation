@@ -39,11 +39,29 @@
                     <span class="h-4 w-4 rounded-full border border-white/40 flex items-center justify-center text-[0.55rem]">S</span>
                     <span>Students</span>
                 </a>
+                <a th:href="@{/admin/programs}"
+                   th:classappend="${#httpServletRequest != null and #httpServletRequest.requestURI.startsWith('/admin/programs')} ? ' bg-white text-[#164655]' : ''"
+                   class="flex items-center gap-2 rounded-lg px-3 py-2 text-slate-100 hover:bg-white/10 transition-colors duration-150">
+                    <span class="h-4 w-4 rounded-full border border-white/40 flex items-center justify-center text-[0.55rem]">P</span>
+                    <span>Programs</span>
+                </a>
                 <a th:href="@{/admin/certificates}"
                    th:classappend="${#httpServletRequest != null and #httpServletRequest.requestURI.startsWith('/admin/certificates')} ? ' bg-white text-[#164655]' : ''"
                    class="flex items-center gap-2 rounded-lg px-3 py-2 text-slate-100 hover:bg-white/10 transition-colors duration-150">
                     <span class="h-4 w-4 rounded-full border border-white/40 flex items-center justify-center text-[0.55rem]">C</span>
                     <span>Certificates</span>
+                    <span th:if="${pendingApprovalCount > 0}"
+                          class="ml-auto inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-amber-500 px-1.5 text-[0.65rem] font-bold text-white"
+                          th:text="${pendingApprovalCount}">
+                        0
+                    </span>
+                </a>
+                <a sec:authorize="hasRole('ADMIN')"
+                   th:href="@{/admin/users}"
+                   th:classappend="${#httpServletRequest != null and #httpServletRequest.requestURI.startsWith('/admin/users')} ? ' bg-white text-[#164655]' : ''"
+                   class="flex items-center gap-2 rounded-lg px-3 py-2 text-slate-100 hover:bg-white/10 transition-colors duration-150">
+                    <span class="h-4 w-4 rounded-full border border-white/40 flex items-center justify-center text-[0.55rem]">U</span>
+                    <span>Users</span>
                 </a>
             </div>
         </div>
@@ -100,11 +118,25 @@
                class="hidden sm:inline-flex items-center rounded-full border border-[#164655] bg-white px-3 py-1 text-xs font-semibold text-[#164655] hover:bg-[#164655] hover:text-white transition-colors duration-150">
                 Public verification
             </a>
-            <div class="flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
-                <span class="h-6 w-6 rounded-full bg-[#164655] text-white flex items-center justify-center text-[0.7rem]">
-                    AD
-                </span>
-                <span sec:authentication="name">admin</span>
+            <div class="relative">
+                <button id="profile-menu-button" type="button"
+                        class="flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-200 transition-colors duration-150">
+                    <span class="h-6 w-6 rounded-full bg-[#164655] text-white flex items-center justify-center text-[0.7rem]">
+                        AD
+                    </span>
+                    <span sec:authentication="name">admin</span>
+                </button>
+                <div id="profile-menu"
+                     class="hidden absolute right-0 mt-2 w-44 rounded-lg border border-slate-200 bg-white py-1 shadow-lg z-50">
+                    <a th:href="@{/admin/profile}"
+                       class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                        Profile
+                    </a>
+                    <a th:href="@{/logout}"
+                       class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                        Logout
+                    </a>
+                </div>
             </div>
         </div>
     </header>
@@ -115,6 +147,51 @@
         </div>
     </main>
 </div>
+
+<script>
+    (function () {
+        const button = document.getElementById('profile-menu-button');
+        const menu = document.getElementById('profile-menu');
+        if (!button || !menu) return;
+
+        button.addEventListener('click', function (event) {
+            event.stopPropagation();
+            menu.classList.toggle('hidden');
+        });
+
+        document.addEventListener('click', function (event) {
+            if (!menu.contains(event.target) && !button.contains(event.target)) {
+                menu.classList.add('hidden');
+            }
+        });
+    })();
+
+    (function () {
+        const spinner = '<svg class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg>';
+
+        document.querySelectorAll('form').forEach(function (form) {
+            form.addEventListener('submit', function (event) {
+                const submitter = event.submitter || form.querySelector('button[type="submit"], input[type="submit"]');
+                if (!submitter) return;
+
+                const submitButtons = form.querySelectorAll('button[type="submit"], input[type="submit"]');
+                submitButtons.forEach(function (btn) {
+                    btn.disabled = true;
+                });
+
+                if (submitter.tagName.toLowerCase() === 'button') {
+                    if (!submitter.dataset.originalHtml) {
+                        submitter.dataset.originalHtml = submitter.innerHTML;
+                    }
+                    const loadingText = submitter.dataset.loadingText || 'Please wait...';
+                    submitter.innerHTML = '<span class="inline-flex items-center gap-2">' + spinner + '<span>' + loadingText + '</span></span>';
+                } else {
+                    submitter.value = submitter.dataset.loadingText || 'Please wait...';
+                }
+            });
+        });
+    })();
+</script>
 
 </body>
 </html>

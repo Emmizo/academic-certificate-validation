@@ -2,14 +2,16 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org"
       th:replace="admin-layout :: adminLayout(~{::title}, ~{::main})">
 <head>
-    <title>New Student</title>
+    <title th:text="${formTitle} + ' | CertSign Admin'">Student | CertSign Admin</title>
 </head>
 <body>
 <main>
     <div class="flex items-start justify-between gap-4">
         <div>
-            <h1 class="text-2xl font-bold text-slate-900">Create Student</h1>
-            <p class="mt-1 text-sm text-slate-600">Register a student once, then reuse them when issuing certificates.</p>
+            <h1 class="text-2xl font-bold text-slate-900" th:text="${formTitle}">Create Student</h1>
+            <p class="mt-1 text-sm text-slate-600" th:text="${formDescription}">
+                Register a student once, then reuse them when issuing certificates.
+            </p>
         </div>
         <a th:href="@{/admin/students}"
            class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50">
@@ -22,7 +24,7 @@
             <div class="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800" th:text="${error}"></div>
         </div>
 
-        <form th:action="@{/admin/students}" th:object="${studentRequest}" method="post" class="space-y-4">
+        <form th:action="${formAction}" th:object="${studentRequest}" method="post" class="space-y-4">
             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
 
             <div>
@@ -58,7 +60,7 @@
 
             <button type="submit"
                     class="w-full rounded-lg bg-[#164655] px-4 py-2 font-semibold text-white hover:bg-[#0f303a]">
-                Save Student
+                <span th:text="${submitLabel}">Save Student</span>
             </button>
         </form>
     </div>

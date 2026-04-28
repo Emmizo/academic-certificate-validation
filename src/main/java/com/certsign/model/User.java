@@ -29,7 +29,10 @@ import lombok.Setter;
 @Entity
 @Table(
         name = "users",
-        uniqueConstraints = {@UniqueConstraint(name = "uk_users_username", columnNames = {"username"})}
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uk_users_username", columnNames = {"username"}),
+                @UniqueConstraint(name = "uk_users_email", columnNames = {"email"})
+        }
 )
 public class User {
 
@@ -40,6 +43,9 @@ public class User {
     @Column(nullable = false, length = 100)
     private String username;
 
+    @Column(length = 190)
+    private String email;
+
     @Column(name = "password_hash", nullable = false, length = 255)
     private String passwordHash;
 
@@ -49,6 +55,12 @@ public class User {
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
+
+    @Column(name = "password_reset_token", length = 120)
+    private String passwordResetToken;
+
+    @Column(name = "password_reset_token_expiry")
+    private LocalDateTime passwordResetTokenExpiry;
 
     @PrePersist
     void onCreate() {

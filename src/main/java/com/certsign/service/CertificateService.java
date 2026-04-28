@@ -6,6 +6,7 @@ package com.certsign.service;
 
 import com.certsign.dto.CertificateRequest;
 import com.certsign.dto.VerificationResult;
+import com.certsign.model.CertificateApprovalStatus;
 import com.certsign.model.Certificate;
 import com.certsign.model.KeyPair;
 import com.certsign.model.Student;
@@ -81,6 +82,7 @@ public class CertificateService {
                 .issueDate(req.getIssueDate())
                 .keyPair(activeKeyPair)
                 .issuedBy(issuedBy)
+                .approvalStatus(CertificateApprovalStatus.PENDING_APPROVAL)
                 .build();
 
         String canonical = cryptoService.buildCanonicalString(cert);
@@ -126,6 +128,10 @@ public class CertificateService {
             throw new IllegalStateException("Certificate has no associated key pair for re-signing");
         }
 
+        cert.setApprovalStatus(CertificateApprovalStatus.PENDING_APPROVAL);
+        cert.setApprovedBy(null);
+        cert.setApprovedAt(null);
+
         String canonical = cryptoService.buildCanonicalString(cert);
         String hash = cryptoService.hashWithSHA256(canonical);
         String signature = cryptoService.signData(hash, cert.getKeyPair().getPrivateKeyEncrypted());
@@ -133,6 +139,16 @@ public class CertificateService {
         cert.setDocumentHash(hash);
         cert.setDigitalSignature(signature);
 
+        return certificateRepository.save(cert);
+    }
+
+    @Transactional
+    public Certificate approveCertificate(Long certificateId, User approver) {
+        Certificate cert = certificateRepository.findById(certificateId)
+                .orElseThrow(() -> new IllegalArgumentException("Certificate not found"));
+        cert.setApprovalStatus(CertificateApprovalStatus.APPROVED);
+        cert.setApprovedBy(approver);
+        cert.setApprovedAt(LocalDateTime.now());
         return certificateRepository.save(cert);
     }
 
@@ -160,6 +176,17 @@ public class CertificateService {
         }
 
         Certificate cert = certOpt.get();
+
+        if (cert.getApprovalStatus() == CertificateApprovalStatus.PENDING_APPROVAL) {
+            log(certificateId, verifierIp, false, "Certificate pending admin approval", verifiedAt);
+            return VerificationResult.builder()
+                    .valid(false)
+                    .message("PENDING_APPROVAL")
+                    .failureReason("Certificate pending admin approval")
+                    .verifiedAt(verifiedAt)
+                    .certificate(null)
+                    .build();
+        }
 
         String canonical = cryptoService.buildCanonicalString(cert);
         String rebuiltHash = cryptoService.hashWithSHA256(canonical);

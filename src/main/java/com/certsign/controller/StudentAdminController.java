@@ -46,6 +46,10 @@ public class StudentAdminController {
     public String newStudentForm(Model model) {
         model.addAttribute("studentRequest", new StudentRequest());
         model.addAttribute("error", null);
+        model.addAttribute("formTitle", "Create Student");
+        model.addAttribute("formDescription", "Register a student once, then reuse them when issuing certificates.");
+        model.addAttribute("formAction", "/admin/students");
+        model.addAttribute("submitLabel", "Save Student");
         return "admin/student-form";
     }
 
@@ -57,16 +61,12 @@ public class StudentAdminController {
     public String createStudent(@ModelAttribute StudentRequest studentRequest, Model model) {
         String err = validate(studentRequest);
         if (err != null) {
-            model.addAttribute("studentRequest", studentRequest);
-            model.addAttribute("error", err);
-            return "admin/student-form";
+            return buildFormModel(model, studentRequest, err, null);
         }
 
         boolean exists = studentRepository.findByStudentNumber(studentRequest.getStudentNumber()).isPresent();
         if (exists) {
-            model.addAttribute("studentRequest", studentRequest);
-            model.addAttribute("error", "A student with this Student ID already exists.");
-            return "admin/student-form";
+            return buildFormModel(model, studentRequest, "A student with this Student ID already exists.", null);
         }
 
         Student s = Student.builder()
@@ -78,6 +78,56 @@ public class StudentAdminController {
                 .status(StudentStatus.ACTIVE)
                 .build();
         studentRepository.save(s);
+
+        return "redirect:/admin/students";
+    }
+
+    /**
+     * Shows the edit form for an existing student.
+     */
+    @GetMapping("/admin/students/{id}/edit")
+    public String editStudentForm(@PathVariable("id") Long id, Model model) {
+        Student student = studentRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Student not found"));
+
+        StudentRequest request = new StudentRequest();
+        request.setStudentNumber(student.getStudentNumber());
+        request.setFullName(student.getFullName());
+        request.setEmail(student.getEmail());
+        request.setNationalId(student.getNationalId());
+        request.setDateOfBirth(student.getDateOfBirth());
+
+        return buildFormModel(model, request, null, id);
+    }
+
+    /**
+     * Handles submission of the edit form and updates the student record.
+     */
+    @PostMapping("/admin/students/{id}")
+    public String updateStudent(
+            @PathVariable("id") Long id,
+            @ModelAttribute StudentRequest studentRequest,
+            Model model
+    ) {
+        Student student = studentRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Student not found"));
+
+        String err = validate(studentRequest);
+        if (err != null) {
+            return buildFormModel(model, studentRequest, err, id);
+        }
+
+        var existingByStudentNumber = studentRepository.findByStudentNumber(studentRequest.getStudentNumber());
+        if (existingByStudentNumber.isPresent() && !existingByStudentNumber.get().getId().equals(id)) {
+            return buildFormModel(model, studentRequest, "A student with this Student ID already exists.", id);
+        }
+
+        student.setStudentNumber(studentRequest.getStudentNumber());
+        student.setFullName(studentRequest.getFullName());
+        student.setEmail(studentRequest.getEmail());
+        student.setNationalId(studentRequest.getNationalId());
+        student.setDateOfBirth(studentRequest.getDateOfBirth());
+        studentRepository.save(student);
 
         return "redirect:/admin/students";
     }
@@ -122,6 +172,22 @@ public class StudentAdminController {
      */
     private boolean isBlank(String s) {
         return s == null || s.trim().isEmpty();
+    }
+
+    private String buildFormModel(Model model, StudentRequest studentRequest, String error, Long editId) {
+        boolean editMode = editId != null;
+        model.addAttribute("studentRequest", studentRequest);
+        model.addAttribute("error", error);
+        model.addAttribute("formTitle", editMode ? "Edit Student" : "Create Student");
+        model.addAttribute(
+                "formDescription",
+                editMode
+                        ? "Update student details used during certificate issuance."
+                        : "Register a student once, then reuse them when issuing certificates."
+        );
+        model.addAttribute("formAction", editMode ? "/admin/students/" + editId : "/admin/students");
+        model.addAttribute("submitLabel", editMode ? "Update Student" : "Save Student");
+        return "admin/student-form";
     }
 }
 

@@ -44,8 +44,11 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Degree / Program</label>
-                    <input th:field="*{degree}" type="text"
-                           class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-[#164655] focus:ring-[#164655]"/>
+                    <select th:field="*{degree}"
+                            class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-[#164655] focus:ring-[#164655]">
+                        <option value="" disabled>Select approved program</option>
+                        <option th:each="p : ${programs}" th:value="${p.name}" th:text="${p.name}"></option>
+                    </select>
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Institution</label>

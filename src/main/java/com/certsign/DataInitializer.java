@@ -37,6 +37,7 @@ public class DataInitializer implements CommandLineRunner {
         if (userRepository.findByUsername(adminUsername).isEmpty()) {
             User admin = User.builder()
                     .username(adminUsername)
+                    .email("admin@certsign.local")
                     .passwordHash(passwordEncoder.encode(adminPassword))
                     .role(UserRole.ADMIN)
                     .build();
@@ -49,6 +50,7 @@ public class DataInitializer implements CommandLineRunner {
         if (userRepository.findByUsername("signer").isEmpty()) {
             User signer = User.builder()
                     .username("signer")
+                    .email("signer@certsign.local")
                     .passwordHash(passwordEncoder.encode("Signer@123"))
                     .role(UserRole.SIGNER)
                     .build();
@@ -61,6 +63,7 @@ public class DataInitializer implements CommandLineRunner {
         if (userRepository.findByUsername("verifier").isEmpty()) {
             User verifier = User.builder()
                     .username("verifier")
+                    .email("verifier@certsign.local")
                     .passwordHash(passwordEncoder.encode("Verifier@123"))
                     .role(UserRole.VERIFIER)
                     .build();

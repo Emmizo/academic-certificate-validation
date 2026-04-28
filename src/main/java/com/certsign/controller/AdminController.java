@@ -6,9 +6,12 @@ package com.certsign.controller;
 
 import com.certsign.dto.CertificateRequest;
 import com.certsign.model.KeyPair;
+import com.certsign.model.CertificateApprovalStatus;
 import com.certsign.model.Student;
 import com.certsign.model.StudentStatus;
 import com.certsign.model.User;
+import com.certsign.model.UserRole;
+import com.certsign.repository.ProgramRepository;
 import com.certsign.repository.CertificateRepository;
 import com.certsign.repository.KeyPairRepository;
 import com.certsign.repository.StudentRepository;
@@ -17,6 +20,7 @@ import com.certsign.service.CertificatePdfService;
 import com.certsign.service.CertificateService;
 import com.certsign.service.CryptoService;
 import java.time.LocalDate;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +42,7 @@ public class AdminController {
     private final CertificateRepository certificateRepository;
     private final KeyPairRepository keyPairRepository;
     private final StudentRepository studentRepository;
+    private final ProgramRepository programRepository;
     private final UserRepository userRepository;
     private final CryptoService cryptoService;
     private final CertificateService certificateService;
@@ -51,6 +56,7 @@ public class AdminController {
             CertificateRepository certificateRepository,
             KeyPairRepository keyPairRepository,
             StudentRepository studentRepository,
+            ProgramRepository programRepository,
             UserRepository userRepository,
             CryptoService cryptoService,
             CertificateService certificateService,
@@ -59,6 +65,7 @@ public class AdminController {
         this.certificateRepository = certificateRepository;
         this.keyPairRepository = keyPairRepository;
         this.studentRepository = studentRepository;
+        this.programRepository = programRepository;
         this.userRepository = userRepository;
         this.cryptoService = cryptoService;
         this.certificateService = certificateService;
@@ -158,6 +165,7 @@ public class AdminController {
         model.addAttribute("certificateRequest", req);
         model.addAttribute("error", null);
         model.addAttribute("students", loadActiveStudents());
+        model.addAttribute("programs", programRepository.findByActiveTrueOrderByNameAsc());
         boolean hasActiveKey = keyPairRepository.findFirstByActiveTrueOrderByCreatedAtDesc().isPresent();
         model.addAttribute("hasActiveKey", hasActiveKey);
         return "admin/issue";
@@ -179,6 +187,7 @@ public class AdminController {
             model.addAttribute("certificateRequest", certificateRequest);
             model.addAttribute("error", err);
             model.addAttribute("students", loadActiveStudents());
+            model.addAttribute("programs", programRepository.findByActiveTrueOrderByNameAsc());
             boolean hasActiveKey = keyPairRepository.findFirstByActiveTrueOrderByCreatedAtDesc().isPresent();
             model.addAttribute("hasActiveKey", hasActiveKey);
             return "admin/issue";
@@ -194,6 +203,7 @@ public class AdminController {
             model.addAttribute("certificateRequest", certificateRequest);
             model.addAttribute("error", ex.getMessage());
             model.addAttribute("students", loadActiveStudents());
+            model.addAttribute("programs", programRepository.findByActiveTrueOrderByNameAsc());
             boolean hasActiveKey = keyPairRepository.findFirstByActiveTrueOrderByCreatedAtDesc().isPresent();
             model.addAttribute("hasActiveKey", hasActiveKey);
             return "admin/issue";
@@ -233,6 +243,7 @@ public class AdminController {
         model.addAttribute("certificate", cert);
         model.addAttribute("certificateRequest", req);
         model.addAttribute("students", loadActiveStudents());
+        model.addAttribute("programs", programRepository.findByActiveTrueOrderByNameAsc());
         model.addAttribute("error", null);
         return "admin/certificate-edit";
     }
@@ -254,6 +265,7 @@ public class AdminController {
             model.addAttribute("certificate", cert);
             model.addAttribute("certificateRequest", certificateRequest);
             model.addAttribute("students", loadActiveStudents());
+            model.addAttribute("programs", programRepository.findByActiveTrueOrderByNameAsc());
             model.addAttribute("error", err);
             return "admin/certificate-edit";
         }
@@ -301,6 +313,13 @@ public class AdminController {
         var cert = certificateRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Certificate not found"));
 
+        if (cert.getApprovalStatus() == CertificateApprovalStatus.PENDING_APPROVAL) {
+            return ResponseEntity.status(409)
+                    .contentType(MediaType.TEXT_PLAIN)
+                    .body("Certificate PDF can only be downloaded after admin approval."
+                            .getBytes(StandardCharsets.UTF_8));
+        }
+
         byte[] pdfBytes = certificatePdfService.renderCertificatePdf(cert);
 
         String filename = (cert.getCertificateId() != null ? cert.getCertificateId() : "certificate") + ".pdf";
@@ -315,6 +334,17 @@ public class AdminController {
                 .body(pdfBytes);
     }
 
+    @PostMapping("/admin/certificates/{id}/approve")
+    public String approveCertificate(@PathVariable("id") Long id, Authentication auth) {
+        User approver = userRepository.findByUsername(auth.getName())
+                .orElseThrow(() -> new IllegalStateException("Authenticated user not found"));
+        if (approver.getRole() != UserRole.ADMIN) {
+            throw new IllegalStateException("Only admins can approve certificates.");
+        }
+        certificateService.approveCertificate(id, approver);
+        return "redirect:/admin/certificates/" + id;
+    }
+
     /**
      * Performs basic server‑side validation of the certificate issuance request.
      */
@@ -322,6 +352,9 @@ public class AdminController {
         if (r == null) return "Invalid request";
         if (r.getStudentRefId() == null) return "Please select a student";
         if (isBlank(r.getDegree())) return "Degree/Program is required";
+        if (programRepository.findByNameIgnoreCaseAndActiveTrue(r.getDegree().trim()).isEmpty()) {
+            return "Please select an active approved program from the list";
+        }
         if (isBlank(r.getInstitution())) return "Institution is required";
         if (r.getIssueDate() == null) return "Issue date is required";
         return null;

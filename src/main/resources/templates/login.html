@@ -18,6 +18,11 @@
                     Invalid username or password.
                 </div>
             </div>
+            <div class="mt-4" th:if="${param.resetSuccess}">
+                <div class="rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-800">
+                    Password reset successful. Please sign in.
+                </div>
+            </div>
 
             <form class="mt-6 space-y-4" th:action="@{/login}" method="post">
                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
@@ -52,6 +57,12 @@
                     Sign In
                 </button>
             </form>
+
+            <p class="mt-3 text-sm text-right">
+                <a th:href="@{/forgot-password}" class="text-[#164655] hover:underline font-semibold">
+                    Forgot password?
+                </a>
+            </p>
 
             <div class="mt-6 border-t border-slate-200 pt-4 text-center text-xs sm:text-sm text-slate-600 space-y-2">
                 <p>

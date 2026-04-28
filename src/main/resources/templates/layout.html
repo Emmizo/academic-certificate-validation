@@ -88,6 +88,34 @@
     </div>
 </footer>
 
+<script>
+    (function () {
+        const spinner = '<svg class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg>';
+
+        document.querySelectorAll('form').forEach(function (form) {
+            form.addEventListener('submit', function (event) {
+                const submitter = event.submitter || form.querySelector('button[type="submit"], input[type="submit"]');
+                if (!submitter) return;
+
+                const submitButtons = form.querySelectorAll('button[type="submit"], input[type="submit"]');
+                submitButtons.forEach(function (button) {
+                    button.disabled = true;
+                });
+
+                if (submitter.tagName.toLowerCase() === 'button') {
+                    if (!submitter.dataset.originalHtml) {
+                        submitter.dataset.originalHtml = submitter.innerHTML;
+                    }
+                    const loadingText = submitter.dataset.loadingText || 'Please wait...';
+                    submitter.innerHTML = '<span class="inline-flex items-center gap-2">' + spinner + '<span>' + loadingText + '</span></span>';
+                } else {
+                    submitter.value = submitter.dataset.loadingText || 'Please wait...';
+                }
+            });
+        });
+    })();
+</script>
+
 </body>
 </html>
 

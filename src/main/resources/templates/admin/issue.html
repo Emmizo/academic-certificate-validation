@@ -51,8 +51,15 @@
 
                 <div>
                     <label class="block text-sm font-medium text-slate-700">Degree / Program</label>
-                    <input th:field="*{degree}" type="text" required
-                           class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#164655]"/>
+                    <select th:field="*{degree}" required
+                            class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-[#164655]">
+                        <option value="" disabled selected>Select approved program...</option>
+                        <option th:each="p : ${programs}" th:value="${p.name}" th:text="${p.name}"></option>
+                    </select>
+                    <p class="mt-1 text-xs text-slate-500">
+                        Missing a program?
+                        <a th:href="@{/admin/programs}" class="font-semibold text-[#164655] hover:text-[#0f303a]">Manage programs</a>.
+                    </p>
                 </div>
 
                 <div>

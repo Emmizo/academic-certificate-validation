@@ -8,6 +8,7 @@ import com.certsign.model.Certificate;
 import com.lowagie.text.Document;
 import com.lowagie.text.Element;
 import com.lowagie.text.Font;
+import com.lowagie.text.Image;
 import com.lowagie.text.PageSize;
 import com.lowagie.text.Paragraph;
 import com.lowagie.text.Phrase;
@@ -19,8 +20,11 @@ import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfWriter;
 import java.awt.Color;
 import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.time.format.DateTimeFormatter;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StreamUtils;
 
 @Service
 public class CertificatePdfService {
@@ -140,10 +144,17 @@ public class CertificatePdfService {
         institutionPara.setSpacingAfter(20f);
         doc.add(institutionPara);
 
-        // Signature line (professional touch)
+        // Signature image + line
+        Image signatureImage = loadSignatureImage();
+        if (signatureImage != null) {
+            signatureImage.scaleToFit(180f, 60f);
+            signatureImage.setAlignment(Image.ALIGN_CENTER);
+            doc.add(signatureImage);
+        }
+
         Paragraph sigLine = new Paragraph("_________________________", bodyFont);
         sigLine.setAlignment(Element.ALIGN_CENTER);
-        sigLine.setSpacingBefore(40f);
+        sigLine.setSpacingBefore(12f);
         sigLine.setSpacingAfter(4f);
         doc.add(sigLine);
         Paragraph sigLabel = new Paragraph("Authorized Signature", sigLabelFont);
@@ -185,6 +196,21 @@ public class CertificatePdfService {
 
         doc.close();
         return baos.toByteArray();
+    }
+
+    private Image loadSignatureImage() {
+        try {
+            ClassPathResource resource = new ClassPathResource("static/image/signal.png");
+            if (!resource.exists()) {
+                return null;
+            }
+            try (InputStream in = resource.getInputStream()) {
+                byte[] bytes = StreamUtils.copyToByteArray(in);
+                return Image.getInstance(bytes);
+            }
+        } catch (Exception ex) {
+            return null;
+        }
     }
 
     /**

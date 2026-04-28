@@ -59,6 +59,27 @@ mvn spring-boot:run
 
 On first startup, the app seeds these users and prints their credentials to the console.
 
+## User Management and Password Reset
+
+- Admins can list users, create users, and assign roles in the admin console.
+- Users with `USER_MANAGER` role can only access the "Create User" page.
+- On user creation, the app sends the username and temporary password by email.
+- Login page supports "Forgot password" and reset-by-token flow.
+
+### SMTP Configuration (required for emails)
+
+Add the following to your local `application.properties`:
+
+```properties
+spring.mail.host=smtp.example.com
+spring.mail.port=587
+spring.mail.username=your-smtp-user
+spring.mail.password=your-smtp-password
+spring.mail.properties.mail.smtp.auth=true
+spring.mail.properties.mail.smtp.starttls.enable=true
+app.base-url=http://localhost:8000
+```
+
 ## Workflow
 
 1. Login as admin → `Admin Login`
