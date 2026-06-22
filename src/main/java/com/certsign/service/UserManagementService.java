@@ -17,7 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class UserManagementService {
 
-    private static final int RESET_EXPIRY_MINUTES = 30;
+    private static final int RESET_EXPIRY_MINUTES = 1;
     private static final String RANDOM_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$%";
 
     private final UserRepository userRepository;
@@ -128,6 +128,14 @@ public class UserManagementService {
             user.setPasswordHash(passwordEncoder.encode(newPassword));
         }
 
+        userRepository.save(user);
+    }
+
+    @Transactional
+    public void setEnabled(Long userId, boolean enabled) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found."));
+        user.setEnabled(enabled);
         userRepository.save(user);
     }
 

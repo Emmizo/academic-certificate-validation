@@ -6,7 +6,7 @@
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title th:replace="${title}">CertSign Admin</title>
+    <title th:replace="${title}">Tumba College Admin</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="min-h-screen bg-slate-50 text-slate-900 flex">
@@ -15,11 +15,11 @@
 <aside class="hidden md:flex md:flex-col w-64 bg-[#164655] text-slate-100">
     <div class="px-5 py-4 flex items-center gap-3 border-b border-[#0f303a]">
         <div class="h-9 w-9 rounded-lg bg-white/10 flex items-center justify-center text-sm font-semibold">
-            CS
+            TC
         </div>
         <div>
-            <div class="text-sm font-semibold tracking-tight">CertSign</div>
-            <div class="text-[0.7rem] text-slate-100/70">Admin Console</div>
+            <div class="text-sm font-semibold tracking-tight">Tumba College</div>
+            <div class="text-[0.7rem] text-slate-100/70">Certificate Portal</div>
         </div>
     </div>
 
@@ -27,25 +27,35 @@
         <div>
             <div class="px-2 text-[0.7rem] font-semibold uppercase tracking-wide text-slate-200/70">Main</div>
             <div class="mt-2 space-y-1">
+                <!-- Dashboard — all authenticated staff -->
                 <a th:href="@{/admin/dashboard}"
                    th:classappend="${#httpServletRequest != null and #httpServletRequest.requestURI.startsWith('/admin/dashboard')} ? ' bg-white text-[#164655]' : ''"
                    class="flex items-center gap-2 rounded-lg px-3 py-2 text-slate-100 hover:bg-white/10 hover:text-white transition-colors duration-150">
                     <span class="h-4 w-4 rounded-full border border-white/40 flex items-center justify-center text-[0.55rem]">D</span>
                     <span>Dashboard</span>
                 </a>
-                <a th:href="@{/admin/students}"
+
+                <!-- Students — admin, secretary, principal, signer -->
+                <a sec:authorize="hasAnyRole('ADMIN','SECRETARY','PRINCIPAL','SIGNER')"
+                   th:href="@{/admin/students}"
                    th:classappend="${#httpServletRequest != null and #httpServletRequest.requestURI.startsWith('/admin/students')} ? ' bg-white text-[#164655]' : ''"
                    class="flex items-center gap-2 rounded-lg px-3 py-2 text-slate-100 hover:bg-white/10 transition-colors duration-150">
                     <span class="h-4 w-4 rounded-full border border-white/40 flex items-center justify-center text-[0.55rem]">S</span>
                     <span>Students</span>
                 </a>
-                <a th:href="@{/admin/programs}"
+
+                <!-- Programs — admin, secretary -->
+                <a sec:authorize="hasAnyRole('ADMIN','SECRETARY')"
+                   th:href="@{/admin/programs}"
                    th:classappend="${#httpServletRequest != null and #httpServletRequest.requestURI.startsWith('/admin/programs')} ? ' bg-white text-[#164655]' : ''"
                    class="flex items-center gap-2 rounded-lg px-3 py-2 text-slate-100 hover:bg-white/10 transition-colors duration-150">
                     <span class="h-4 w-4 rounded-full border border-white/40 flex items-center justify-center text-[0.55rem]">P</span>
                     <span>Programs</span>
                 </a>
-                <a th:href="@{/admin/certificates}"
+
+                <!-- Certificates — all staff except verifier -->
+                <a sec:authorize="hasAnyRole('ADMIN','SECRETARY','PRINCIPAL','SIGNER')"
+                   th:href="@{/admin/certificates}"
                    th:classappend="${#httpServletRequest != null and #httpServletRequest.requestURI.startsWith('/admin/certificates')} ? ' bg-white text-[#164655]' : ''"
                    class="flex items-center gap-2 rounded-lg px-3 py-2 text-slate-100 hover:bg-white/10 transition-colors duration-150">
                     <span class="h-4 w-4 rounded-full border border-white/40 flex items-center justify-center text-[0.55rem]">C</span>
@@ -56,6 +66,8 @@
                         0
                     </span>
                 </a>
+
+                <!-- Users — admin only -->
                 <a sec:authorize="hasRole('ADMIN')"
                    th:href="@{/admin/users}"
                    th:classappend="${#httpServletRequest != null and #httpServletRequest.requestURI.startsWith('/admin/users')} ? ' bg-white text-[#164655]' : ''"
@@ -66,16 +78,20 @@
             </div>
         </div>
 
-        <div>
+        <div sec:authorize="hasAnyRole('ADMIN','SECRETARY','SIGNER')">
             <div class="px-2 text-[0.7rem] font-semibold uppercase tracking-wide text-slate-200/70">Issuance</div>
             <div class="mt-2 space-y-1">
+                <!-- Issue — admin, secretary, signer -->
                 <a th:href="@{/admin/issue}"
                    th:classappend="${#httpServletRequest != null and #httpServletRequest.requestURI.startsWith('/admin/issue')} ? ' bg-white text-[#164655]' : ''"
                    class="flex items-center gap-2 rounded-lg px-3 py-2 text-slate-100 hover:bg-white/10 transition-colors duration-150">
                     <span class="h-4 w-4 rounded-full border border-white/40 flex items-center justify-center text-[0.55rem]">I</span>
                     <span>Issue</span>
                 </a>
-                <a th:href="@{/admin/keys}"
+
+                <!-- Keys — admin, signer only -->
+                <a sec:authorize="hasAnyRole('ADMIN','SIGNER')"
+                   th:href="@{/admin/keys}"
                    th:classappend="${#httpServletRequest != null and #httpServletRequest.requestURI.startsWith('/admin/keys')} ? ' bg-white text-[#164655]' : ''"
                    class="flex items-center gap-2 rounded-lg px-3 py-2 text-slate-100 hover:bg-white/10 transition-colors duration-150">
                     <span class="h-4 w-4 rounded-full border border-white/40 flex items-center justify-center text-[0.55rem]">K</span>
@@ -111,7 +127,7 @@
     <!-- Top bar -->
     <header class="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-slate-200 bg-white shadow-sm">
         <div class="flex items-center gap-2 text-sm">
-            <span class="hidden sm:inline text-slate-500">CertSign Admin</span>
+            <span class="hidden sm:inline text-slate-500">Tumba College Certificate Portal</span>
         </div>
         <div class="flex items-center gap-3">
             <a th:href="@{/verify}"
@@ -122,16 +138,12 @@
                 <button id="profile-menu-button" type="button"
                         class="flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-200 transition-colors duration-150">
                     <span class="h-6 w-6 rounded-full bg-[#164655] text-white flex items-center justify-center text-[0.7rem]">
-                        AD
+                        TC
                     </span>
                     <span sec:authentication="name">admin</span>
                 </button>
                 <div id="profile-menu"
                      class="hidden absolute right-0 mt-2 w-44 rounded-lg border border-slate-200 bg-white py-1 shadow-lg z-50">
-                    <a th:href="@{/admin/profile}"
-                       class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
-                        Profile
-                    </a>
                     <a th:href="@{/logout}"
                        class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
                         Logout
@@ -195,4 +207,3 @@
 
 </body>
 </html>
-

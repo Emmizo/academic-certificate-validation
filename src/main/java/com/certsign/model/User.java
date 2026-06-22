@@ -56,6 +56,10 @@ public class User {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean enabled = true;
+
     @Column(name = "password_reset_token", length = 120)
     private String passwordResetToken;
 

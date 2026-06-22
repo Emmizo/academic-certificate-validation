@@ -55,16 +55,19 @@ public class UserAdminController {
                 throw new IllegalArgumentException("Only admins can create another admin user.");
             }
             var created = userManagementService.createUser(username, email, role);
-            String subject = "Your CertSign account has been created";
+            String subject = "Tumba College — Your portal account has been created";
             String body = """
                     Hello %s,
 
-                    Your account has been created in CertSign.
+                    Your account has been created in the Tumba College certificate portal.
                     Username: %s
                     Temporary password: %s
 
                     Please log in and change your password immediately.
                     Login: %s/login
+
+                    Regards,
+                    Tumba College IT Staff
                     """.formatted(created.user().getUsername(), created.user().getUsername(), created.temporaryPassword(), appBaseUrl);
             boolean sent = mailService.send(created.user().getEmail(), subject, body);
             if (sent) {
@@ -84,6 +87,12 @@ public class UserAdminController {
     @PostMapping("/admin/users/{id}/role")
     public String updateRole(@PathVariable("id") Long id, @RequestParam("role") UserRole role) {
         userManagementService.updateUserRole(id, role);
+        return "redirect:/admin/users?updated=1";
+    }
+
+    @PostMapping("/admin/users/{id}/enabled")
+    public String setEnabled(@PathVariable("id") Long id, @RequestParam("enabled") boolean enabled) {
+        userManagementService.setEnabled(id, enabled);
         return "redirect:/admin/users?updated=1";
     }
 
@@ -133,14 +142,17 @@ public class UserAdminController {
         if (token != null) {
             String resetLink = appBaseUrl + "/reset-password?token=" + token;
             String body = """
-                    You requested a password reset for your CertSign account.
+                    You requested a password reset for your Tumba College portal account.
 
-                    Reset password link (valid for 30 minutes):
+                    Reset password link (valid for 1 minute):
                     %s
 
                     If this was not you, please ignore this email.
+
+                    Regards,
+                    Tumba College IT Staff
                     """.formatted(resetLink);
-            mailService.send(email, "CertSign password reset", body);
+            mailService.send(email, "Tumba College portal — password reset", body);
         }
         return "redirect:/forgot-password?sent=1";
     }

@@ -1,12 +1,15 @@
-// SDLC Phase: Implementation
-// Component: DataInitializer
-// Requirements covered: NFR-02, NFR-03, NFR-04
-// Description: Seeds default admin user on first application startup
 package com.certsign;
 
+import com.certsign.model.Program;
+import com.certsign.model.Student;
+import com.certsign.model.StudentStatus;
 import com.certsign.model.User;
 import com.certsign.model.UserRole;
+import com.certsign.repository.ProgramRepository;
+import com.certsign.repository.StudentRepository;
 import com.certsign.repository.UserRepository;
+import java.time.LocalDate;
+import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -16,6 +19,8 @@ import org.springframework.stereotype.Component;
 public class DataInitializer implements CommandLineRunner {
 
     private final UserRepository userRepository;
+    private final ProgramRepository programRepository;
+    private final StudentRepository studentRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Value("${app.admin.username:admin}")
@@ -24,57 +29,91 @@ public class DataInitializer implements CommandLineRunner {
     @Value("${app.admin.password:Admin@123}")
     private String adminPassword;
 
-    public DataInitializer(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public DataInitializer(UserRepository userRepository,
+                           ProgramRepository programRepository,
+                           StudentRepository studentRepository,
+                           PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.programRepository = programRepository;
+        this.studentRepository = studentRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
     @Override
     public void run(String... args) {
-        boolean createdAny = false;
+        seedUsers();
+        seedPrograms();
+        seedStudents();
+    }
 
-        // Ensure admin exists (based on configured username)
-        if (userRepository.findByUsername(adminUsername).isEmpty()) {
-            User admin = User.builder()
-                    .username(adminUsername)
-                    .email("admin@certsign.local")
-                    .passwordHash(passwordEncoder.encode(adminPassword))
-                    .role(UserRole.ADMIN)
-                    .build();
-            userRepository.save(admin);
-            createdAny = true;
-            System.out.println("Created default ADMIN user: username=" + adminUsername + " password=" + adminPassword);
+    private void seedUsers() {
+        record Seed(String username, String email, String password, UserRole role) {}
+
+        List<Seed> seeds = List.of(
+            new Seed(adminUsername,  "admin@tumbacollege.rw",     adminPassword,   UserRole.ADMIN),
+            new Seed("principal",    "principal@tumbacollege.rw", "Principal@123", UserRole.PRINCIPAL),
+            new Seed("secretary",    "secretary@tumbacollege.rw", "Secretary@123", UserRole.SECRETARY),
+            new Seed("signer",       "signer@tumbacollege.rw",    "Signer@123",    UserRole.SIGNER),
+            new Seed("verifier",     "verifier@tumbacollege.rw",  "Verifier@123",  UserRole.VERIFIER)
+        );
+
+        for (Seed s : seeds) {
+            if (userRepository.findByUsername(s.username()).isEmpty()) {
+                userRepository.save(User.builder()
+                        .username(s.username())
+                        .email(s.email())
+                        .passwordHash(passwordEncoder.encode(s.password()))
+                        .role(s.role())
+                        .build());
+                System.out.printf("[Seed] Created user: %s / %s%n", s.username(), s.password());
+            }
         }
+    }
 
-        // Ensure signer exists
-        if (userRepository.findByUsername("signer").isEmpty()) {
-            User signer = User.builder()
-                    .username("signer")
-                    .email("signer@certsign.local")
-                    .passwordHash(passwordEncoder.encode("Signer@123"))
-                    .role(UserRole.SIGNER)
-                    .build();
-            userRepository.save(signer);
-            createdAny = true;
-            System.out.println("Created default SIGNER user: username=signer password=Signer@123");
+    private void seedPrograms() {
+        List<String> programs = List.of(
+            "Bachelor of Science in Computer Science",
+            "Bachelor of Business Administration",
+            "Bachelor of Education",
+            "Bachelor of Engineering in Civil Engineering",
+            "Diploma in Information Technology",
+            "Diploma in Accounting",
+            "Certificate in Project Management"
+        );
+
+        for (String name : programs) {
+            if (programRepository.findByNameIgnoreCase(name).isEmpty()) {
+                programRepository.save(Program.builder()
+                        .name(name)
+                        .active(true)
+                        .build());
+                System.out.printf("[Seed] Created program: %s%n", name);
+            }
         }
+    }
 
-        // Ensure verifier exists
-        if (userRepository.findByUsername("verifier").isEmpty()) {
-            User verifier = User.builder()
-                    .username("verifier")
-                    .email("verifier@certsign.local")
-                    .passwordHash(passwordEncoder.encode("Verifier@123"))
-                    .role(UserRole.VERIFIER)
-                    .build();
-            userRepository.save(verifier);
-            createdAny = true;
-            System.out.println("Created default VERIFIER user: username=verifier password=Verifier@123");
-        }
+    private void seedStudents() {
+        record StudentSeed(String number, String name, String email, LocalDate dob) {}
 
-        if (!createdAny) {
-            System.out.println("Default users already present; no seeding required.");
+        List<StudentSeed> students = List.of(
+            new StudentSeed("TC2024001", "Alice Uwimana",   "alice.uwimana@example.rw",   LocalDate.of(2000, 3, 15)),
+            new StudentSeed("TC2024002", "Bob Nkurunziza",  "bob.nkurunziza@example.rw",  LocalDate.of(1999, 7, 22)),
+            new StudentSeed("TC2024003", "Claire Mukamana", "claire.mukamana@example.rw", LocalDate.of(2001, 1, 10)),
+            new StudentSeed("TC2024004", "David Habimana",  "david.habimana@example.rw",  LocalDate.of(2000, 11, 5)),
+            new StudentSeed("TC2024005", "Esther Uwineza",  "esther.uwineza@example.rw",  LocalDate.of(1998, 6, 30))
+        );
+
+        for (StudentSeed s : students) {
+            if (studentRepository.findByStudentNumber(s.number()).isEmpty()) {
+                studentRepository.save(Student.builder()
+                        .studentNumber(s.number())
+                        .fullName(s.name())
+                        .email(s.email())
+                        .dateOfBirth(s.dob())
+                        .status(StudentStatus.ACTIVE)
+                        .build());
+                System.out.printf("[Seed] Created student: %s (%s)%n", s.name(), s.number());
+            }
         }
     }
 }
-

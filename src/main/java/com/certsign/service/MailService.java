@@ -2,36 +2,28 @@ package com.certsign.service;
 
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.mail.SimpleMailMessage;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
-import org.springframework.mail.MailSender;
 import org.springframework.stereotype.Service;
 
 @Service
 public class MailService {
 
-    private final MailSender mailSender;
     private final JavaMailSender javaMailSender;
 
-    public MailService(
-            ObjectProvider<MailSender> mailSenderProvider,
-            ObjectProvider<JavaMailSender> javaMailSenderProvider
-    ) {
-        this.mailSender = mailSenderProvider.getIfAvailable();
+    @Value("${app.mail.from-name:Tumba College}")
+    private String fromName;
+
+    @Value("${app.mail.from-address:noreply@tumbacollege.rw}")
+    private String fromAddress;
+
+    public MailService(ObjectProvider<JavaMailSender> javaMailSenderProvider) {
         this.javaMailSender = javaMailSenderProvider.getIfAvailable();
     }
 
     public boolean send(String to, String subject, String body) {
-        if (mailSender == null) {
-            return false;
-        }
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setTo(to);
-        message.setSubject(subject);
-        message.setText(body);
-        mailSender.send(message);
-        return true;
+        return sendWithAttachment(to, subject, body, null, null, null);
     }
 
     public boolean sendWithAttachment(
@@ -47,15 +39,18 @@ public class MailService {
         }
         try {
             MimeMessage mimeMessage = javaMailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true);
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+            helper.setFrom(fromAddress, fromName);
             helper.setTo(to);
             helper.setSubject(subject);
             helper.setText(body);
-            helper.addAttachment(
-                    attachmentFilename,
-                    new org.springframework.core.io.ByteArrayResource(attachmentBytes),
-                    contentType
-            );
+            if (attachmentFilename != null && attachmentBytes != null) {
+                helper.addAttachment(
+                        attachmentFilename,
+                        new org.springframework.core.io.ByteArrayResource(attachmentBytes),
+                        contentType
+                );
+            }
             javaMailSender.send(mimeMessage);
             return true;
         } catch (Exception ex) {

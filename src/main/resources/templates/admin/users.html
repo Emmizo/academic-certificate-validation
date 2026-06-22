@@ -2,7 +2,7 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org"
       th:replace="admin-layout :: adminLayout(~{::title}, ~{::main})">
 <head>
-    <title>Users | CertSign Admin</title>
+    <title>Users | Tumba College Admin</title>
 </head>
 <body>
 <main>
@@ -24,7 +24,7 @@
             User was created, but the email could not be sent. Configure SMTP and try again.
         </div>
         <div th:if="${param.updated}" class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">
-            User role updated.
+            User updated.
         </div>
 
         <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -35,7 +35,8 @@
                     <th class="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider">Username</th>
                     <th class="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider">Email</th>
                     <th class="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider">Role</th>
-                    <th class="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider">Change Role</th>
+                    <th class="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider">Status</th>
+                    <th class="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider">Actions</th>
                 </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 bg-white">
@@ -49,11 +50,30 @@
                         </span>
                     </td>
                     <td class="px-6 py-4">
-                        <div class="flex items-center gap-2">
+                        <!-- Toggle button triggers confirmation modal -->
+                        <button type="button"
+                                th:text="${user.enabled} ? 'Active' : 'Inactive'"
+                                th:classappend="${user.enabled} ? ' bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : ' bg-slate-100 text-slate-500 hover:bg-slate-200'"
+                                th:data-user-id="${user.id}"
+                                th:data-username="${user.username}"
+                                th:data-enabled="${user.enabled}"
+                                class="toggle-status-btn inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold transition-colors cursor-pointer">
+                        </button>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="flex flex-wrap items-center gap-2">
                         <a th:href="@{/admin/users/{id}/edit(id=${user.id})}"
                            class="rounded-md px-2 py-1 text-sm font-semibold text-[#164655] hover:bg-slate-100 hover:text-[#0f303a]">
                             Edit
                         </a>
+                        <form th:action="@{/admin/users/{id}/impersonate(id=${user.id})}" method="post" class="inline">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                            <button type="submit"
+                                    class="rounded-md px-2 py-1 text-xs font-semibold text-slate-600 border border-slate-300 hover:bg-amber-50 hover:text-amber-700"
+                                    data-loading-text="...">
+                                Sign in as
+                            </button>
+                        </form>
                         <form th:action="@{/admin/users/{id}/role(id=${user.id})}" method="post" class="flex items-center gap-2">
                             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
                             <select name="role" class="rounded-lg border border-slate-300 px-2 py-1 bg-white">
@@ -78,6 +98,77 @@
             </div>
         </div>
     </section>
+
+    <!-- Confirmation modal for enable/disable -->
+    <div id="status-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/40">
+        <div class="w-full max-w-sm bg-white rounded-2xl shadow-xl border border-slate-200 p-6 mx-4">
+            <h2 id="modal-title" class="text-lg font-semibold text-slate-900"></h2>
+            <p id="modal-body" class="mt-2 text-sm text-slate-600"></p>
+            <div class="mt-6 flex justify-end gap-3">
+                <button id="modal-cancel"
+                        class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                    Cancel
+                </button>
+                <form id="modal-form" method="post" class="inline">
+                    <input type="hidden" id="modal-csrf" name="_csrf" th:value="${_csrf.token}"/>
+                    <input type="hidden" id="modal-enabled" name="enabled"/>
+                    <button type="submit"
+                            id="modal-confirm"
+                            class="rounded-lg px-4 py-2 text-sm font-semibold text-white">
+                        Confirm
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
 </main>
+
+<script>
+(function () {
+    var modal = document.getElementById('status-modal');
+    var modalTitle = document.getElementById('modal-title');
+    var modalBody = document.getElementById('modal-body');
+    var modalForm = document.getElementById('modal-form');
+    var modalEnabled = document.getElementById('modal-enabled');
+    var modalConfirm = document.getElementById('modal-confirm');
+    var modalCancel = document.getElementById('modal-cancel');
+
+    document.querySelectorAll('.toggle-status-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var userId = btn.getAttribute('data-user-id');
+            var username = btn.getAttribute('data-username');
+            var isEnabled = btn.getAttribute('data-enabled') === 'true';
+            var newEnabled = !isEnabled;
+
+            modalForm.action = '/admin/users/' + userId + '/enabled';
+            modalEnabled.value = newEnabled;
+
+            if (newEnabled) {
+                modalTitle.textContent = 'Activate ' + username + '?';
+                modalBody.textContent = 'This will allow ' + username + ' to log in to the portal.';
+                modalConfirm.className = 'rounded-lg px-4 py-2 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700';
+                modalConfirm.textContent = 'Activate';
+            } else {
+                modalTitle.textContent = 'Deactivate ' + username + '?';
+                modalBody.textContent = username + ' will no longer be able to log in until reactivated.';
+                modalConfirm.className = 'rounded-lg px-4 py-2 text-sm font-semibold text-white bg-red-600 hover:bg-red-700';
+                modalConfirm.textContent = 'Deactivate';
+            }
+
+            modal.classList.remove('hidden');
+        });
+    });
+
+    modalCancel.addEventListener('click', function () {
+        modal.classList.add('hidden');
+    });
+
+    modal.addEventListener('click', function (e) {
+        if (e.target === modal) {
+            modal.classList.add('hidden');
+        }
+    });
+})();
+</script>
 </body>
 </html>

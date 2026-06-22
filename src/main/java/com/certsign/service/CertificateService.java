@@ -149,6 +149,18 @@ public class CertificateService {
         cert.setApprovalStatus(CertificateApprovalStatus.APPROVED);
         cert.setApprovedBy(approver);
         cert.setApprovedAt(LocalDateTime.now());
+        cert.setRejectionReason(null);
+        return certificateRepository.save(cert);
+    }
+
+    @Transactional
+    public Certificate rejectCertificate(Long certificateId, User rejectedBy, String reason) {
+        Certificate cert = certificateRepository.findById(certificateId)
+                .orElseThrow(() -> new IllegalArgumentException("Certificate not found"));
+        cert.setApprovalStatus(CertificateApprovalStatus.REJECTED);
+        cert.setApprovedBy(rejectedBy);
+        cert.setApprovedAt(LocalDateTime.now());
+        cert.setRejectionReason(reason);
         return certificateRepository.save(cert);
     }
 

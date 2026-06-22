@@ -39,15 +39,28 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/admin/users/*/edit").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/admin/users/*/role").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/admin/users/*").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/admin/certificates/*/approve").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/admin/certificates/*/resend-email").hasRole("ADMIN")
+                        // Admin-only actions
+                        .requestMatchers(HttpMethod.POST, "/admin/users/*/enabled").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/admin/users/*/impersonate").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/admin/users").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/admin/users/*/edit").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/admin/users/*/role").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/admin/users/*").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/admin/programs").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/admin/programs/*/activate").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/admin/programs/*/deactivate").hasRole("ADMIN")
                         .requestMatchers("/admin/users/new").hasAnyRole("ADMIN", "USER_MANAGER")
                         .requestMatchers(HttpMethod.POST, "/admin/users").hasAnyRole("ADMIN", "USER_MANAGER")
-                        // Allow both ADMIN and SIGNER roles to access certificate admin console
-                        .requestMatchers("/admin/**").hasAnyRole("ADMIN", "SIGNER")
+                        // Approve / reject / bulk — PRINCIPAL or ADMIN
+                        .requestMatchers(HttpMethod.POST, "/admin/certificates/bulk-approve").hasAnyRole("ADMIN", "PRINCIPAL")
+                        .requestMatchers(HttpMethod.POST, "/admin/certificates/*/approve").hasAnyRole("ADMIN", "PRINCIPAL")
+                        .requestMatchers(HttpMethod.POST, "/admin/certificates/*/reject").hasAnyRole("ADMIN", "PRINCIPAL")
+                        .requestMatchers(HttpMethod.POST, "/admin/certificates/*/resend-email").hasAnyRole("ADMIN", "PRINCIPAL")
+                        // Secretary can issue (access issue form and POST)
+                        .requestMatchers(HttpMethod.GET, "/admin/issue").hasAnyRole("ADMIN", "SIGNER", "SECRETARY")
+                        .requestMatchers(HttpMethod.POST, "/admin/issue").hasAnyRole("ADMIN", "SIGNER", "SECRETARY")
+                        // All authenticated staff can reach admin area
+                        .requestMatchers("/admin/**").hasAnyRole("ADMIN", "SIGNER", "PRINCIPAL", "SECRETARY", "USER_MANAGER")
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form

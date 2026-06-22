@@ -20,6 +20,9 @@ import com.certsign.service.CertificatePdfService;
 import com.certsign.service.CertificateService;
 import com.certsign.service.CryptoService;
 import com.certsign.service.MailService;
+import com.certsign.service.UserService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.time.LocalDate;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -27,9 +30,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.springframework.http.HttpHeaders;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
@@ -50,6 +59,7 @@ public class AdminController {
     private final CertificateService certificateService;
     private final CertificatePdfService certificatePdfService;
     private final MailService mailService;
+    private final UserService userService;
 
     /**
      * Creates the admin controller that wires repositories and cryptographic services
@@ -64,7 +74,8 @@ public class AdminController {
             CryptoService cryptoService,
             CertificateService certificateService,
             CertificatePdfService certificatePdfService,
-            MailService mailService
+            MailService mailService,
+            UserService userService
     ) {
         this.certificateRepository = certificateRepository;
         this.keyPairRepository = keyPairRepository;
@@ -75,6 +86,7 @@ public class AdminController {
         this.certificateService = certificateService;
         this.certificatePdfService = certificatePdfService;
         this.mailService = mailService;
+        this.userService = userService;
     }
 
     /**
@@ -328,13 +340,6 @@ public class AdminController {
         var cert = certificateRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Certificate not found"));
 
-        if (cert.getApprovalStatus() == CertificateApprovalStatus.PENDING_APPROVAL) {
-            return ResponseEntity.status(409)
-                    .contentType(MediaType.TEXT_PLAIN)
-                    .body("Certificate PDF can only be downloaded after admin approval."
-                            .getBytes(StandardCharsets.UTF_8));
-        }
-
         byte[] pdfBytes = certificatePdfService.renderCertificatePdf(cert);
 
         String filename = (cert.getCertificateId() != null ? cert.getCertificateId() : "certificate") + ".pdf";
@@ -353,24 +358,23 @@ public class AdminController {
     public String approveCertificate(@PathVariable("id") Long id, Authentication auth) {
         User approver = userRepository.findByUsername(auth.getName())
                 .orElseThrow(() -> new IllegalStateException("Authenticated user not found"));
-        if (approver.getRole() != UserRole.ADMIN) {
-            throw new IllegalStateException("Only admins can approve certificates.");
-        }
         var approved = certificateService.approveCertificate(id, approver);
 
         String studentEmail = approved.getStudent() != null ? approved.getStudent().getEmail() : null;
         if (studentEmail != null && !studentEmail.trim().isEmpty()) {
             byte[] pdfBytes = certificatePdfService.renderCertificatePdf(approved);
             String filename = (approved.getCertificateId() != null ? approved.getCertificateId() : "certificate") + ".pdf";
-            String subject = "Your certificate has been approved";
+            String subject = "Your Tumba College certificate has been approved";
             String body = """
                     Hello %s,
 
-                    Your certificate (%s) has been approved by admin.
-                    Please find the approved certificate PDF attached.
+                    Great news! Your certificate (%s) has been reviewed and approved by the Principal.
+                    Please find your signed certificate PDF attached.
+
+                    You can also verify your certificate online at any time using your Certificate ID.
 
                     Regards,
-                    CertSign
+                    Tumba College
                     """.formatted(
                     approved.getStudentName() != null ? approved.getStudentName() : "Student",
                     approved.getCertificateId()
@@ -385,16 +389,49 @@ public class AdminController {
             );
         }
 
-        return "redirect:/admin/certificates/" + id;
+        return "redirect:/admin/certificates/" + id + "?approved=1";
+    }
+
+    @PostMapping("/admin/certificates/{id}/reject")
+    public String rejectCertificate(@PathVariable("id") Long id,
+                                    @RequestParam(value = "reason", required = false) String reason,
+                                    Authentication auth) {
+        User rejector = userRepository.findByUsername(auth.getName())
+                .orElseThrow(() -> new IllegalStateException("Authenticated user not found"));
+        var rejected = certificateService.rejectCertificate(id, rejector, reason);
+
+        String studentEmail = rejected.getStudent() != null ? rejected.getStudent().getEmail() : null;
+        if (studentEmail != null && !studentEmail.trim().isEmpty()) {
+            String studentName = rejected.getStudentName() != null ? rejected.getStudentName() : "Student";
+            String subject = "Update on your Tumba College certificate";
+            String body = """
+                    Hello %s,
+
+                    Your certificate (%s) has been reviewed but was not approved at this time.
+
+                    %s
+
+                    Please contact the college administration if you have any questions.
+
+                    Regards,
+                    Tumba College
+                    """.formatted(
+                    studentName,
+                    rejected.getCertificateId(),
+                    (reason != null && !reason.isBlank())
+                            ? "Reason: " + reason.trim()
+                            : "No reason was provided."
+            );
+            mailService.send(studentEmail.trim(), subject, body);
+        }
+
+        return "redirect:/admin/certificates/" + id + "?rejected=1";
     }
 
     @PostMapping("/admin/certificates/{id}/resend-email")
     public String resendCertificateEmail(@PathVariable("id") Long id, Authentication auth) {
-        User actor = userRepository.findByUsername(auth.getName())
+        userRepository.findByUsername(auth.getName())
                 .orElseThrow(() -> new IllegalStateException("Authenticated user not found"));
-        if (actor.getRole() != UserRole.ADMIN) {
-            throw new IllegalStateException("Only admins can resend certificate emails.");
-        }
 
         var cert = certificateRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Certificate not found"));
@@ -411,7 +448,7 @@ public class AdminController {
         String studentEmail = cert.getStudent().getEmail().trim();
         byte[] pdfBytes = certificatePdfService.renderCertificatePdf(cert);
         String filename = (cert.getCertificateId() != null ? cert.getCertificateId() : "certificate") + ".pdf";
-        String subject = "Certificate copy: " + cert.getCertificateId();
+        String subject = "Tumba College — Certificate copy: " + cert.getCertificateId();
         String body = """
                 Hello %s,
 
@@ -419,7 +456,7 @@ public class AdminController {
                 Certificate ID: %s
 
                 Regards,
-                CertSign
+                Tumba College
                 """.formatted(
                 cert.getStudentName() != null ? cert.getStudentName() : "Student",
                 cert.getCertificateId()
@@ -436,6 +473,74 @@ public class AdminController {
             return "redirect:/admin/certificates?resendError=mail";
         }
         return "redirect:/admin/certificates?resendSent=1";
+    }
+
+    /**
+     * Allows an ADMIN to sign in as another user for support purposes.
+     * The admin's own session is replaced with the target user's authentication.
+     */
+    @PostMapping("/admin/users/{id}/impersonate")
+    public String impersonate(@PathVariable("id") Long id,
+                              Authentication auth,
+                              HttpServletRequest request,
+                              HttpServletResponse response) {
+        User targetUser = userRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        UserDetails details = userService.loadUserByUsername(targetUser.getUsername());
+        UsernamePasswordAuthenticationToken newAuth =
+                new UsernamePasswordAuthenticationToken(details, null, details.getAuthorities());
+        SecurityContext ctx = SecurityContextHolder.createEmptyContext();
+        ctx.setAuthentication(newAuth);
+        SecurityContextHolder.setContext(ctx);
+        request.getSession(true).setAttribute(
+                HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, ctx);
+        return "redirect:/admin/dashboard";
+    }
+
+    /**
+     * Bulk-approves all certificates whose IDs are submitted via checkboxes.
+     * Skips any that are already approved. Sends email for each after approval.
+     */
+    @PostMapping("/admin/certificates/bulk-approve")
+    public String bulkApprove(@RequestParam(value = "certIds", required = false) List<Long> certIds,
+                              Authentication auth) {
+        if (certIds == null || certIds.isEmpty()) {
+            return "redirect:/admin/certificates?bulkError=noneSelected";
+        }
+        User approver = userRepository.findByUsername(auth.getName())
+                .orElseThrow(() -> new IllegalStateException("Authenticated user not found"));
+
+        int approved = 0;
+        for (Long id : certIds) {
+            var certOpt = certificateRepository.findById(id);
+            if (certOpt.isEmpty()) continue;
+            var cert = certOpt.get();
+            if (cert.getApprovalStatus() == CertificateApprovalStatus.APPROVED) continue;
+
+            var saved = certificateService.approveCertificate(id, approver);
+            approved++;
+
+            String studentEmail = saved.getStudent() != null ? saved.getStudent().getEmail() : null;
+            if (studentEmail != null && !studentEmail.trim().isEmpty()) {
+                byte[] pdfBytes = certificatePdfService.renderCertificatePdf(saved);
+                String filename = (saved.getCertificateId() != null ? saved.getCertificateId() : "certificate") + ".pdf";
+                String subject = "Your Tumba College certificate has been approved";
+                String body = """
+                        Hello %s,
+
+                        Your certificate (%s) has been approved.
+                        Please find the approved certificate PDF attached.
+
+                        Regards,
+                        Tumba College
+                        """.formatted(
+                        saved.getStudentName() != null ? saved.getStudentName() : "Student",
+                        saved.getCertificateId()
+                );
+                mailService.sendWithAttachment(studentEmail.trim(), subject, body, filename, pdfBytes, MediaType.APPLICATION_PDF_VALUE);
+            }
+        }
+        return "redirect:/admin/certificates?bulkApproved=" + approved;
     }
 
     /**

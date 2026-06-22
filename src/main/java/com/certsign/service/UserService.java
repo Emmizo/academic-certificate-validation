@@ -32,11 +32,13 @@ public class UserService implements UserDetailsService {
      */
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         var user = userRepository.findByUsername(username)
+                .or(() -> userRepository.findByEmail(username.trim().toLowerCase()))
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
         return org.springframework.security.core.userdetails.User.builder()
                 .username(user.getUsername())
                 .password(user.getPasswordHash())
+                .disabled(!user.isEnabled())
                 .authorities(List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name())))
                 .build();
     }

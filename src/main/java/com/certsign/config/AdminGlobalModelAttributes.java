@@ -25,7 +25,9 @@ public class AdminGlobalModelAttributes {
             return 0L;
         }
         boolean isAdminOrSigner = auth.getAuthorities().stream()
-                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()) || "ROLE_SIGNER".equals(a.getAuthority()));
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority())
+                        || "ROLE_SIGNER".equals(a.getAuthority())
+                        || "ROLE_PRINCIPAL".equals(a.getAuthority()));
         if (!isAdminOrSigner) {
             return 0L;
         }

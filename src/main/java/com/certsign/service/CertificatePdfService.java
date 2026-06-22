@@ -94,7 +94,7 @@ public class CertificatePdfService {
         heading.setSpacingAfter(12f);
         doc.add(heading);
 
-        Paragraph sub = new Paragraph("Digitally signed and verifiable via CertSign", subTitleFont);
+        Paragraph sub = new Paragraph("Tumba College — Digitally signed and verifiable", subTitleFont);
         sub.setAlignment(Element.ALIGN_CENTER);
         sub.setSpacingAfter(24f);
         doc.add(sub);

@@ -8,6 +8,8 @@ public enum UserRole {
     ADMIN,
     USER_MANAGER,
     SIGNER,
-    VERIFIER
+    VERIFIER,
+    SECRETARY,
+    PRINCIPAL
 }
 

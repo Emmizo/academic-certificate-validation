@@ -92,6 +92,9 @@ public class Certificate {
     @Column(name = "approved_at")
     private LocalDateTime approvedAt;
 
+    @Column(name = "rejection_reason", columnDefinition = "TEXT")
+    private String rejectionReason;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
