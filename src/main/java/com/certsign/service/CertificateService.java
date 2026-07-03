@@ -9,11 +9,13 @@ import com.certsign.dto.VerificationResult;
 import com.certsign.model.CertificateApprovalStatus;
 import com.certsign.model.Certificate;
 import com.certsign.model.KeyPair;
+import com.certsign.model.Program;
 import com.certsign.model.Student;
 import com.certsign.model.User;
 import com.certsign.model.VerificationLog;
 import com.certsign.repository.CertificateRepository;
 import com.certsign.repository.KeyPairRepository;
+import com.certsign.repository.ProgramRepository;
 import com.certsign.repository.StudentRepository;
 import com.certsign.repository.VerificationLogRepository;
 import java.security.SecureRandom;
@@ -29,6 +31,7 @@ public class CertificateService {
     private final CertificateRepository certificateRepository;
     private final KeyPairRepository keyPairRepository;
     private final StudentRepository studentRepository;
+    private final ProgramRepository programRepository;
     private final VerificationLogRepository verificationLogRepository;
     private final SecureRandom secureRandom = new SecureRandom();
 
@@ -40,12 +43,14 @@ public class CertificateService {
             CertificateRepository certificateRepository,
             KeyPairRepository keyPairRepository,
             StudentRepository studentRepository,
+            ProgramRepository programRepository,
             VerificationLogRepository verificationLogRepository
     ) {
         this.cryptoService = cryptoService;
         this.certificateRepository = certificateRepository;
         this.keyPairRepository = keyPairRepository;
         this.studentRepository = studentRepository;
+        this.programRepository = programRepository;
         this.verificationLogRepository = verificationLogRepository;
     }
 
@@ -72,12 +77,16 @@ public class CertificateService {
         Student student = studentRepository.findById(req.getStudentRefId())
                 .orElseThrow(() -> new IllegalArgumentException("Selected student not found"));
 
+        Program program = programRepository.findByNameIgnoreCaseAndActiveTrue(req.getDegree().trim())
+                .orElseThrow(() -> new IllegalArgumentException("Selected program not found or inactive"));
+
         Certificate cert = Certificate.builder()
                 .certificateId(generateCertificateId())
                 .studentName(student.getFullName())
                 .studentId(student.getStudentNumber())
                 .student(student)
                 .degree(req.getDegree())
+                .program(program)
                 .institution(req.getInstitution())
                 .issueDate(req.getIssueDate())
                 .keyPair(activeKeyPair)
@@ -116,6 +125,8 @@ public class CertificateService {
 
         if (req.getDegree() != null) {
             cert.setDegree(req.getDegree());
+            programRepository.findByNameIgnoreCaseAndActiveTrue(req.getDegree().trim())
+                    .ifPresent(cert::setProgram);
         }
         if (req.getInstitution() != null) {
             cert.setInstitution(req.getInstitution());
@@ -131,6 +142,8 @@ public class CertificateService {
         cert.setApprovalStatus(CertificateApprovalStatus.PENDING_APPROVAL);
         cert.setApprovedBy(null);
         cert.setApprovedAt(null);
+        cert.setSentBy(null);
+        cert.setSentAt(null);
 
         String canonical = cryptoService.buildCanonicalString(cert);
         String hash = cryptoService.hashWithSHA256(canonical);
@@ -166,6 +179,26 @@ public class CertificateService {
 
     @Transactional
     /**
+     * Records that the secretary (or admin) delivered the certificate PDF to the student.
+     * Allowed even when the principal has not yet signed (PENDING_APPROVAL).
+     */
+    public Certificate sendCertificateToStudent(Long certificateId, User sender) {
+        Certificate cert = certificateRepository.findById(certificateId)
+                .orElseThrow(() -> new IllegalArgumentException("Certificate not found"));
+        if (cert.getApprovalStatus() == CertificateApprovalStatus.REJECTED) {
+            throw new IllegalStateException("Cannot send a rejected certificate");
+        }
+        if (cert.getStudent() == null || cert.getStudent().getEmail() == null
+                || cert.getStudent().getEmail().trim().isEmpty()) {
+            throw new IllegalStateException("Student email is missing");
+        }
+        cert.setSentBy(sender);
+        cert.setSentAt(LocalDateTime.now());
+        return certificateRepository.save(cert);
+    }
+
+    @Transactional
+    /**
      * Verifies a certificate by ID using both the stored SHA‑256 hash and RSA signature.
      * <p>
      * It rebuilds the canonical string, recomputes the SHA‑256 hash, verifies the RSA
@@ -177,7 +210,7 @@ public class CertificateService {
 
         Optional<Certificate> certOpt = certificateRepository.findByCertificateId(certificateId);
         if (certOpt.isEmpty()) {
-            log(certificateId, verifierIp, false, "Certificate not found", verifiedAt);
+            log(null, certificateId, verifierIp, false, "Certificate not found", verifiedAt);
             return VerificationResult.builder()
                     .valid(false)
                     .message("INVALID")
@@ -190,7 +223,7 @@ public class CertificateService {
         Certificate cert = certOpt.get();
 
         if (cert.getApprovalStatus() == CertificateApprovalStatus.PENDING_APPROVAL) {
-            log(certificateId, verifierIp, false, "Certificate pending admin approval", verifiedAt);
+            log(cert, certificateId, verifierIp, false, "Certificate pending admin approval", verifiedAt);
             return VerificationResult.builder()
                     .valid(false)
                     .message("PENDING_APPROVAL")
@@ -203,7 +236,7 @@ public class CertificateService {
         String canonical = cryptoService.buildCanonicalString(cert);
         String rebuiltHash = cryptoService.hashWithSHA256(canonical);
         if (!rebuiltHash.equalsIgnoreCase(cert.getDocumentHash())) {
-            log(certificateId, verifierIp, false, "Document tampered", verifiedAt);
+            log(cert, certificateId, verifierIp, false, "Document tampered", verifiedAt);
             return VerificationResult.builder()
                     .valid(false)
                     .message("INVALID")
@@ -215,7 +248,7 @@ public class CertificateService {
 
         boolean ok = cryptoService.verifySignature(rebuiltHash, cert.getDigitalSignature(), cert.getKeyPair().getPublicKey());
         if (!ok) {
-            log(certificateId, verifierIp, false, "Signature verification failed", verifiedAt);
+            log(cert, certificateId, verifierIp, false, "Signature verification failed", verifiedAt);
             return VerificationResult.builder()
                     .valid(false)
                     .message("INVALID")
@@ -225,7 +258,7 @@ public class CertificateService {
                     .build();
         }
 
-        log(certificateId, verifierIp, true, null, verifiedAt);
+        log(cert, certificateId, verifierIp, true, null, verifiedAt);
         return VerificationResult.builder()
                 .valid(true)
                 .message("VALID")
@@ -239,7 +272,7 @@ public class CertificateService {
      * Persists a verification attempt to the audit log, truncating overly long fields
      * so they fit within database column limits.
      */
-    private void log(String certificateId, String verifierIp, boolean result, String failureReason, LocalDateTime verifiedAt) {
+    private void log(Certificate certificate, String certificateId, String verifierIp, boolean result, String failureReason, LocalDateTime verifiedAt) {
         String cid = certificateId == null ? "" : certificateId;
         if (cid.length() > 50) {
             cid = cid.substring(0, 50);
@@ -251,6 +284,7 @@ public class CertificateService {
         }
 
         verificationLogRepository.save(VerificationLog.builder()
+                .certificate(certificate)
                 .certificateId(cid)
                 .verifierIp(ip)
                 .result(result)

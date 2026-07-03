@@ -11,10 +11,13 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -65,6 +68,18 @@ public class User {
 
     @Column(name = "password_reset_token_expiry")
     private LocalDateTime passwordResetTokenExpiry;
+
+    @OneToMany(mappedBy = "issuedBy")
+    @Builder.Default
+    private List<Certificate> issuedCertificates = new ArrayList<>();
+
+    @OneToMany(mappedBy = "approvedBy")
+    @Builder.Default
+    private List<Certificate> approvedCertificates = new ArrayList<>();
+
+    @OneToMany(mappedBy = "sentBy")
+    @Builder.Default
+    private List<Certificate> sentCertificates = new ArrayList<>();
 
     @PrePersist
     void onCreate() {

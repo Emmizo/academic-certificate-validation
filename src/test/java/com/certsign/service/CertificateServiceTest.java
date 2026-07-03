@@ -7,12 +7,15 @@ import static org.mockito.Mockito.when;
 import com.certsign.dto.CertificateRequest;
 import com.certsign.dto.VerificationResult;
 import com.certsign.model.Certificate;
+import com.certsign.model.CertificateApprovalStatus;
 import com.certsign.model.KeyPair;
+import com.certsign.model.Program;
 import com.certsign.model.Student;
 import com.certsign.model.StudentStatus;
 import com.certsign.model.User;
 import com.certsign.repository.CertificateRepository;
 import com.certsign.repository.KeyPairRepository;
+import com.certsign.repository.ProgramRepository;
 import com.certsign.repository.StudentRepository;
 import com.certsign.repository.VerificationLogRepository;
 import java.time.LocalDate;
@@ -42,6 +45,9 @@ class CertificateServiceTest {
     private StudentRepository studentRepository;
 
     @Mock
+    private ProgramRepository programRepository;
+
+    @Mock
     private VerificationLogRepository verificationLogRepository;
 
     private CryptoService cryptoService;
@@ -57,6 +63,7 @@ class CertificateServiceTest {
                 certificateRepository,
                 keyPairRepository,
                 studentRepository,
+                programRepository,
                 verificationLogRepository
         );
     }
@@ -97,6 +104,8 @@ class CertificateServiceTest {
                 .thenReturn(Optional.of(kp));
         when(studentRepository.findById(student.getId()))
                 .thenReturn(Optional.of(student));
+        when(programRepository.findByNameIgnoreCaseAndActiveTrue("BSc Computer Science"))
+                .thenReturn(Optional.of(Program.builder().id(1L).name("BSc Computer Science").active(true).build()));
         when(certificateRepository.save(any(Certificate.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0, Certificate.class));
 
@@ -305,6 +314,7 @@ class CertificateServiceTest {
 
         // Act: update + re-sign
         Certificate updated = certificateService.updateCertificate(50L, updateReq);
+        updated.setApprovalStatus(CertificateApprovalStatus.APPROVED);
 
         // Assert: hash and signature are regenerated and certificate still verifies
         assertThat(updated.getDegree()).isEqualTo("New Degree");

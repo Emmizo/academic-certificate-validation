@@ -77,7 +77,25 @@
     <!-- Approved banner -->
     <div th:if="${param.approved}"
          class="rounded-2xl border border-emerald-200 bg-emerald-50 px-6 py-4 text-sm text-emerald-800">
-        Certificate approved and email sent to the student.
+        Certificate signed by the Principal. The Secretary can now send it to the student.
+    </div>
+
+    <!-- Sent banner -->
+    <div th:if="${param.sent}"
+         class="rounded-2xl border border-emerald-200 bg-emerald-50 px-6 py-4 text-sm text-emerald-800">
+        Certificate emailed to the student successfully.
+    </div>
+    <div th:if="${param.sendError != null and param.sendError[0] == 'emailMissing'}"
+         class="rounded-2xl border border-amber-200 bg-amber-50 px-6 py-4 text-sm text-amber-800">
+        Cannot send: student email is missing.
+    </div>
+    <div th:if="${param.sendError != null and param.sendError[0] == 'mail'}"
+         class="rounded-2xl border border-red-200 bg-red-50 px-6 py-4 text-sm text-red-800">
+        Certificate found, but email could not be sent. Check SMTP settings.
+    </div>
+    <div th:if="${param.sendError != null and param.sendError[0] == 'rejected'}"
+         class="rounded-2xl border border-red-200 bg-red-50 px-6 py-4 text-sm text-red-800">
+        Cannot send a rejected certificate.
     </div>
 
     <!-- Rejected banner -->
@@ -90,15 +108,15 @@
     <div class="rounded-2xl border border-amber-200 bg-amber-50 p-6"
          th:if="${certificate.approvalStatus != null and certificate.approvalStatus.name() == 'PENDING_APPROVAL'}"
          sec:authorize="hasAnyRole('ADMIN','PRINCIPAL')">
-        <p class="text-sm font-semibold text-amber-900">This certificate is awaiting your decision.</p>
-        <p class="mt-1 text-xs text-amber-800">Approving will sign and email the PDF to the student. Rejecting will notify the student without attaching a PDF.</p>
+        <p class="text-sm font-semibold text-amber-900">This certificate is awaiting your signature.</p>
+        <p class="mt-1 text-xs text-amber-800">Signing approves the certificate. The Secretary will send it to the student afterward.</p>
         <div class="mt-4 flex flex-wrap items-start gap-4">
             <form th:action="@{/admin/certificates/{id}/approve(id=${certificate.id})}" method="post">
                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
                 <button type="submit"
                         class="rounded-lg bg-emerald-600 px-5 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
-                        data-loading-text="Approving...">
-                    Approve &amp; Send Certificate
+                        data-loading-text="Signing...">
+                    Sign Certificate
                 </button>
             </form>
             <form th:action="@{/admin/certificates/{id}/reject(id=${certificate.id})}" method="post" class="flex flex-col gap-2 flex-1 min-w-[220px]">
@@ -112,6 +130,29 @@
                 </button>
             </form>
         </div>
+    </div>
+
+    <!-- Secretary send panel -->
+    <div class="rounded-2xl border border-blue-200 bg-blue-50 p-6"
+         th:if="${certificate.approvalStatus == null or certificate.approvalStatus.name() != 'REJECTED'}"
+         sec:authorize="hasAnyRole('ADMIN','SECRETARY')">
+        <p class="text-sm font-semibold text-blue-900">Send certificate to student</p>
+        <p class="mt-1 text-xs text-blue-800"
+           th:if="${certificate.approvalStatus != null and certificate.approvalStatus.name() == 'PENDING_APPROVAL'}">
+            This certificate has not been signed by the Principal yet. You may still send it to the student.
+        </p>
+        <p class="mt-1 text-xs text-blue-800"
+           th:if="${certificate.sentAt != null}"
+           th:text="'Last sent: ' + ${#temporals.format(certificate.sentAt, 'yyyy-MM-dd HH:mm')} + (${certificate.sentBy != null} ? ' by ' + ${certificate.sentBy.username} : '')">
+        </p>
+        <form th:action="@{/admin/certificates/{id}/send(id=${certificate.id})}" method="post" class="mt-4">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+            <button type="submit"
+                    class="rounded-lg bg-[#164655] px-5 py-2 text-sm font-semibold text-white hover:bg-[#0f303a]"
+                    data-loading-text="Sending...">
+                <span th:text="${certificate.sentAt != null} ? 'Resend to Student' : 'Send to Student'">Send to Student</span>
+            </button>
+        </form>
     </div>
 
     <!-- Rejected status panel -->

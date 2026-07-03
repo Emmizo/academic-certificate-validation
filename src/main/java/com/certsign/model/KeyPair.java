@@ -10,9 +10,12 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Lob;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -45,6 +48,10 @@ public class KeyPair {
 
     @Column(name = "is_active", nullable = false)
     private boolean active;
+
+    @OneToMany(mappedBy = "keyPair")
+    @Builder.Default
+    private List<Certificate> certificates = new ArrayList<>();
 
     @PrePersist
     void onCreate() {

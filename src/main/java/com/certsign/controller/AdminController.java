@@ -358,37 +358,7 @@ public class AdminController {
     public String approveCertificate(@PathVariable("id") Long id, Authentication auth) {
         User approver = userRepository.findByUsername(auth.getName())
                 .orElseThrow(() -> new IllegalStateException("Authenticated user not found"));
-        var approved = certificateService.approveCertificate(id, approver);
-
-        String studentEmail = approved.getStudent() != null ? approved.getStudent().getEmail() : null;
-        if (studentEmail != null && !studentEmail.trim().isEmpty()) {
-            byte[] pdfBytes = certificatePdfService.renderCertificatePdf(approved);
-            String filename = (approved.getCertificateId() != null ? approved.getCertificateId() : "certificate") + ".pdf";
-            String subject = "Your Tumba College certificate has been approved";
-            String body = """
-                    Hello %s,
-
-                    Great news! Your certificate (%s) has been reviewed and approved by the Principal.
-                    Please find your signed certificate PDF attached.
-
-                    You can also verify your certificate online at any time using your Certificate ID.
-
-                    Regards,
-                    Tumba College
-                    """.formatted(
-                    approved.getStudentName() != null ? approved.getStudentName() : "Student",
-                    approved.getCertificateId()
-            );
-            mailService.sendWithAttachment(
-                    studentEmail.trim(),
-                    subject,
-                    body,
-                    filename,
-                    pdfBytes,
-                    MediaType.APPLICATION_PDF_VALUE
-            );
-        }
-
+        certificateService.approveCertificate(id, approver);
         return "redirect:/admin/certificates/" + id + "?approved=1";
     }
 
@@ -428,6 +398,67 @@ public class AdminController {
         return "redirect:/admin/certificates/" + id + "?rejected=1";
     }
 
+    @PostMapping("/admin/certificates/{id}/send")
+    public String sendCertificateToStudent(@PathVariable("id") Long id, Authentication auth) {
+        User sender = userRepository.findByUsername(auth.getName())
+                .orElseThrow(() -> new IllegalStateException("Authenticated user not found"));
+
+        var cert = certificateRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Certificate not found"));
+
+        try {
+            certificateService.sendCertificateToStudent(id, sender);
+        } catch (IllegalStateException ex) {
+            if (ex.getMessage() != null && ex.getMessage().contains("rejected")) {
+                return "redirect:/admin/certificates/" + id + "?sendError=rejected";
+            }
+            return "redirect:/admin/certificates/" + id + "?sendError=emailMissing";
+        }
+
+        boolean sent = emailCertificatePdf(cert);
+        if (!sent) {
+            return "redirect:/admin/certificates/" + id + "?sendError=mail";
+        }
+        return "redirect:/admin/certificates/" + id + "?sent=1";
+    }
+
+    @PostMapping("/admin/certificates/bulk-send")
+    public String bulkSendToStudents(@RequestParam(value = "certIds", required = false) List<Long> certIds,
+                                     Authentication auth) {
+        if (certIds == null || certIds.isEmpty()) {
+            return "redirect:/admin/certificates?bulkSendError=noneSelected";
+        }
+        User sender = userRepository.findByUsername(auth.getName())
+                .orElseThrow(() -> new IllegalStateException("Authenticated user not found"));
+
+        int sent = 0;
+        int failed = 0;
+        for (Long id : certIds) {
+            var certOpt = certificateRepository.findById(id);
+            if (certOpt.isEmpty()) continue;
+            var cert = certOpt.get();
+            if (cert.getApprovalStatus() == CertificateApprovalStatus.REJECTED) {
+                failed++;
+                continue;
+            }
+            if (cert.getStudent() == null || isBlank(cert.getStudent().getEmail())) {
+                failed++;
+                continue;
+            }
+            try {
+                certificateService.sendCertificateToStudent(id, sender);
+                if (emailCertificatePdf(cert)) {
+                    sent++;
+                } else {
+                    failed++;
+                }
+            } catch (IllegalStateException ex) {
+                failed++;
+            }
+        }
+        return "redirect:/admin/certificates?bulkSent=" + sent + "&bulkSendFailed=" + failed;
+    }
+
     @PostMapping("/admin/certificates/{id}/resend-email")
     public String resendCertificateEmail(@PathVariable("id") Long id, Authentication auth) {
         userRepository.findByUsername(auth.getName())
@@ -435,40 +466,14 @@ public class AdminController {
 
         var cert = certificateRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Certificate not found"));
-        if (cert.getApprovalStatus() == CertificateApprovalStatus.PENDING_APPROVAL) {
-            return "redirect:/admin/certificates?resendError=notApproved";
-        }
-        if (!isCertificateCryptographicallyValid(cert)) {
-            return "redirect:/admin/certificates?resendError=invalid";
+        if (cert.getApprovalStatus() == CertificateApprovalStatus.REJECTED) {
+            return "redirect:/admin/certificates?resendError=rejected";
         }
         if (cert.getStudent() == null || isBlank(cert.getStudent().getEmail())) {
             return "redirect:/admin/certificates?resendError=emailMissing";
         }
 
-        String studentEmail = cert.getStudent().getEmail().trim();
-        byte[] pdfBytes = certificatePdfService.renderCertificatePdf(cert);
-        String filename = (cert.getCertificateId() != null ? cert.getCertificateId() : "certificate") + ".pdf";
-        String subject = "Tumba College — Certificate copy: " + cert.getCertificateId();
-        String body = """
-                Hello %s,
-
-                As requested, here is your certificate copy attached as PDF.
-                Certificate ID: %s
-
-                Regards,
-                Tumba College
-                """.formatted(
-                cert.getStudentName() != null ? cert.getStudentName() : "Student",
-                cert.getCertificateId()
-        );
-        boolean sent = mailService.sendWithAttachment(
-                studentEmail,
-                subject,
-                body,
-                filename,
-                pdfBytes,
-                MediaType.APPLICATION_PDF_VALUE
-        );
+        boolean sent = emailCertificatePdf(cert);
         if (!sent) {
             return "redirect:/admin/certificates?resendError=mail";
         }
@@ -517,30 +522,60 @@ public class AdminController {
             var cert = certOpt.get();
             if (cert.getApprovalStatus() == CertificateApprovalStatus.APPROVED) continue;
 
-            var saved = certificateService.approveCertificate(id, approver);
+            certificateService.approveCertificate(id, approver);
             approved++;
-
-            String studentEmail = saved.getStudent() != null ? saved.getStudent().getEmail() : null;
-            if (studentEmail != null && !studentEmail.trim().isEmpty()) {
-                byte[] pdfBytes = certificatePdfService.renderCertificatePdf(saved);
-                String filename = (saved.getCertificateId() != null ? saved.getCertificateId() : "certificate") + ".pdf";
-                String subject = "Your Tumba College certificate has been approved";
-                String body = """
-                        Hello %s,
-
-                        Your certificate (%s) has been approved.
-                        Please find the approved certificate PDF attached.
-
-                        Regards,
-                        Tumba College
-                        """.formatted(
-                        saved.getStudentName() != null ? saved.getStudentName() : "Student",
-                        saved.getCertificateId()
-                );
-                mailService.sendWithAttachment(studentEmail.trim(), subject, body, filename, pdfBytes, MediaType.APPLICATION_PDF_VALUE);
-            }
         }
         return "redirect:/admin/certificates?bulkApproved=" + approved;
+    }
+
+    private boolean emailCertificatePdf(com.certsign.model.Certificate cert) {
+        if (cert.getStudent() == null || isBlank(cert.getStudent().getEmail())) {
+            return false;
+        }
+        String studentEmail = cert.getStudent().getEmail().trim();
+        byte[] pdfBytes = certificatePdfService.renderCertificatePdf(cert);
+        String filename = (cert.getCertificateId() != null ? cert.getCertificateId() : "certificate") + ".pdf";
+        boolean principalSigned = cert.getApprovalStatus() == CertificateApprovalStatus.APPROVED;
+        String subject = principalSigned
+                ? "Your Tumba College certificate: " + cert.getCertificateId()
+                : "Your Tumba College certificate (pending principal signature): " + cert.getCertificateId();
+        String body = principalSigned
+                ? """
+                Hello %s,
+
+                Please find your certificate PDF attached.
+                Certificate ID: %s
+
+                You can verify your certificate online at any time using this ID.
+
+                Regards,
+                Tumba College
+                """.formatted(
+                        cert.getStudentName() != null ? cert.getStudentName() : "Student",
+                        cert.getCertificateId()
+                )
+                : """
+                Hello %s,
+
+                Please find your certificate PDF attached.
+                Certificate ID: %s
+
+                Note: this certificate is still awaiting the Principal's signature. You will receive an updated copy once it is signed.
+
+                Regards,
+                Tumba College
+                """.formatted(
+                        cert.getStudentName() != null ? cert.getStudentName() : "Student",
+                        cert.getCertificateId()
+                );
+        return mailService.sendWithAttachment(
+                studentEmail,
+                subject,
+                body,
+                filename,
+                pdfBytes,
+                MediaType.APPLICATION_PDF_VALUE
+        );
     }
 
     /**

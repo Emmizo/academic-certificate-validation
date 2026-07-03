@@ -61,6 +61,10 @@ public class Certificate {
     @Column(nullable = false, length = 200)
     private String degree;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "program_id")
+    private Program program;
+
     @Column(nullable = false, length = 200)
     private String institution;
 
@@ -94,6 +98,13 @@ public class Certificate {
 
     @Column(name = "rejection_reason", columnDefinition = "TEXT")
     private String rejectionReason;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "sent_by")
+    private User sentBy;
+
+    @Column(name = "sent_at")
+    private LocalDateTime sentAt;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
