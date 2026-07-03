@@ -105,7 +105,11 @@ class CertificateServiceTest {
         when(studentRepository.findById(student.getId()))
                 .thenReturn(Optional.of(student));
         when(programRepository.findByNameIgnoreCaseAndActiveTrue("BSc Computer Science"))
-                .thenReturn(Optional.of(Program.builder().id(1L).name("BSc Computer Science").active(true).build()));
+                .thenReturn(Optional.of(Program.builder()
+                        .id(1L)
+                        .name("BSc Computer Science")
+                        .active(true)
+                        .build()));
         when(certificateRepository.save(any(Certificate.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0, Certificate.class));
 

@@ -2,6 +2,7 @@ package com.certsign.controller;
 
 import com.certsign.dto.ProgramRequest;
 import com.certsign.model.Program;
+import com.certsign.repository.LicenceTypeRepository;
 import com.certsign.repository.ProgramRepository;
 import java.util.Comparator;
 import org.springframework.stereotype.Controller;
@@ -15,9 +16,12 @@ import org.springframework.web.bind.annotation.PostMapping;
 public class ProgramAdminController {
 
     private final ProgramRepository programRepository;
+    private final LicenceTypeRepository licenceTypeRepository;
 
-    public ProgramAdminController(ProgramRepository programRepository) {
+    public ProgramAdminController(ProgramRepository programRepository,
+                                  LicenceTypeRepository licenceTypeRepository) {
         this.programRepository = programRepository;
+        this.licenceTypeRepository = licenceTypeRepository;
     }
 
     @GetMapping("/admin/programs")
@@ -25,6 +29,7 @@ public class ProgramAdminController {
         var programs = programRepository.findAll();
         programs.sort(Comparator.comparing(Program::getName, String.CASE_INSENSITIVE_ORDER));
         model.addAttribute("programs", programs);
+        model.addAttribute("licenceTypes", licenceTypeRepository.findByActiveTrueOrderByNameAsc());
         model.addAttribute("programRequest", new ProgramRequest());
         model.addAttribute("error", null);
         return "admin/programs";
@@ -39,8 +44,12 @@ public class ProgramAdminController {
         if (programRepository.findByNameIgnoreCase(normalizedName).isPresent()) {
             return renderWithError(model, "This program already exists.");
         }
+        var licenceType = programRequest.getLicenceTypeId() != null
+                ? licenceTypeRepository.findById(programRequest.getLicenceTypeId()).orElse(null)
+                : null;
         Program program = Program.builder()
                 .name(normalizedName)
+                .licenceType(licenceType)
                 .active(true)
                 .build();
         programRepository.save(program);
@@ -69,6 +78,7 @@ public class ProgramAdminController {
         var programs = programRepository.findAll();
         programs.sort(Comparator.comparing(Program::getName, String.CASE_INSENSITIVE_ORDER));
         model.addAttribute("programs", programs);
+        model.addAttribute("licenceTypes", licenceTypeRepository.findByActiveTrueOrderByNameAsc());
         model.addAttribute("programRequest", new ProgramRequest());
         model.addAttribute("error", error);
         return "admin/programs";

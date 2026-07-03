@@ -27,6 +27,14 @@
                     <input th:field="*{name}" type="text" required
                            class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#164655]"/>
                 </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700">Licence type</label>
+                    <select th:field="*{licenceTypeId}"
+                            class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-[#164655]">
+                        <option value="">Select licence type (optional)</option>
+                        <option th:each="lt : ${licenceTypes}" th:value="${lt.id}" th:text="${lt.name}"></option>
+                    </select>
+                </div>
                 <button type="submit"
                         class="w-full rounded-lg bg-[#164655] px-4 py-2 font-semibold text-white hover:bg-[#0f303a]">
                     Save Program
@@ -41,6 +49,7 @@
                 <thead class="bg-slate-50/95 backdrop-blur supports-[backdrop-filter]:bg-slate-50/80">
                 <tr>
                     <th class="px-6 py-3 text-left text-[11px] font-semibold text-slate-600 uppercase tracking-wider">Program</th>
+                    <th class="px-6 py-3 text-left text-[11px] font-semibold text-slate-600 uppercase tracking-wider">Licence Type</th>
                     <th class="px-6 py-3 text-left text-[11px] font-semibold text-slate-600 uppercase tracking-wider">Status</th>
                     <th sec:authorize="hasRole('ADMIN')"
                         class="px-6 py-3 text-right text-[11px] font-semibold text-slate-600 uppercase tracking-wider">Action</th>
@@ -48,11 +57,13 @@
                 </thead>
                 <tbody class="divide-y divide-slate-100 bg-white">
                 <tr th:if="${#lists.isEmpty(programs)}">
-                    <td th:attr="colspan=${#authorization.expression('hasRole(''ADMIN'')') ? 3 : 2}"
+                    <td th:attr="colspan=${#authorization.expression('hasRole(''ADMIN'')') ? 4 : 3}"
                         class="px-6 py-6 text-center text-sm text-slate-500">No programs yet.</td>
                 </tr>
                 <tr th:each="p : ${programs}" class="hover:bg-slate-50/70 transition-colors">
                     <td class="px-6 py-4 text-sm text-slate-900 font-semibold" th:text="${p.name}"></td>
+                    <td class="px-6 py-4 text-sm text-slate-700"
+                        th:text="${p.licenceType != null ? p.licenceType.name : '—'}"></td>
                     <td class="px-6 py-4 text-sm">
                         <span th:text="${p.active} ? 'Active' : 'Inactive'"
                               th:classappend="${p.active} ? ' bg-emerald-50 text-emerald-700 border-emerald-200' : ' bg-red-50 text-red-700 border-red-200'"

@@ -12,13 +12,17 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.ForeignKey;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -54,16 +58,20 @@ public class Certificate {
     @Column(name = "student_id", nullable = false, length = 50)
     private String studentId;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = true)
-    @JoinColumn(name = "student_ref_id")
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "student_ref_id", nullable = false, foreignKey = @ForeignKey(name = "fk_certificates_student"))
     private Student student;
 
     @Column(nullable = false, length = 200)
     private String degree;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = true)
-    @JoinColumn(name = "program_id")
+    @JoinColumn(name = "program_id", foreignKey = @ForeignKey(name = "fk_certificates_program"))
     private Program program;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "licence_type_id", foreignKey = @ForeignKey(name = "fk_certificates_licence_type"))
+    private LicenceType licenceType;
 
     @Column(nullable = false, length = 200)
     private String institution;
@@ -105,6 +113,10 @@ public class Certificate {
 
     @Column(name = "sent_at")
     private LocalDateTime sentAt;
+
+    @OneToMany(mappedBy = "certificate")
+    @Builder.Default
+    private List<VerificationLog> verificationLogs = new ArrayList<>();
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;

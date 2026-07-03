@@ -1,7 +1,3 @@
-// SDLC Phase: Implementation
-// Component: Student Model
-// Requirements covered: FR-02, FR-03, NFR-03
-// Description: Represents a student who can hold one or more certificates
 package com.certsign.model;
 
 import jakarta.persistence.Column;
@@ -25,6 +21,10 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * Registered student. Linked to {@link Certificate} records via {@link #certificates}
+ * (one student, many certificates).
+ */
 @Getter
 @Setter
 @NoArgsConstructor
@@ -64,6 +64,7 @@ public class Student {
     private LocalDateTime updatedAt;
 
     @OneToMany(mappedBy = "student")
+    @Builder.Default
     private List<Certificate> certificates = new ArrayList<>();
 
     @PrePersist

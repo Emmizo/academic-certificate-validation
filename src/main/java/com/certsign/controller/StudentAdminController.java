@@ -7,8 +7,11 @@ package com.certsign.controller;
 import com.certsign.dto.StudentRequest;
 import com.certsign.model.Student;
 import com.certsign.model.StudentStatus;
+import com.certsign.repository.CertificateRepository;
 import com.certsign.repository.StudentRepository;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Map;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,12 +23,15 @@ import org.springframework.web.bind.annotation.PostMapping;
 public class StudentAdminController {
 
     private final StudentRepository studentRepository;
+    private final CertificateRepository certificateRepository;
 
     /**
-     * Creates the student admin controller backed by the given repository.
+     * Creates the student admin controller backed by the given repositories.
      */
-    public StudentAdminController(StudentRepository studentRepository) {
+    public StudentAdminController(StudentRepository studentRepository,
+                                  CertificateRepository certificateRepository) {
         this.studentRepository = studentRepository;
+        this.certificateRepository = certificateRepository;
     }
 
     /**
@@ -35,7 +41,14 @@ public class StudentAdminController {
     public String listStudents(Model model) {
         var students = studentRepository.findAll();
         students.sort(Comparator.comparing(Student::getFullName, String.CASE_INSENSITIVE_ORDER));
+
+        Map<Long, Long> certificateCountByStudentId = new HashMap<>();
+        for (Student student : students) {
+            certificateCountByStudentId.put(student.getId(), certificateRepository.countByStudent_Id(student.getId()));
+        }
+
         model.addAttribute("students", students);
+        model.addAttribute("certificateCountByStudentId", certificateCountByStudentId);
         return "admin/students";
     }
 
@@ -97,6 +110,7 @@ public class StudentAdminController {
         request.setNationalId(student.getNationalId());
         request.setDateOfBirth(student.getDateOfBirth());
 
+        model.addAttribute("studentCertificates", certificateRepository.findByStudent_IdOrderByCreatedAtDesc(id));
         return buildFormModel(model, request, null, id);
     }
 
@@ -114,11 +128,13 @@ public class StudentAdminController {
 
         String err = validate(studentRequest);
         if (err != null) {
+            model.addAttribute("studentCertificates", certificateRepository.findByStudent_IdOrderByCreatedAtDesc(id));
             return buildFormModel(model, studentRequest, err, id);
         }
 
         var existingByStudentNumber = studentRepository.findByStudentNumber(studentRequest.getStudentNumber());
         if (existingByStudentNumber.isPresent() && !existingByStudentNumber.get().getId().equals(id)) {
+            model.addAttribute("studentCertificates", certificateRepository.findByStudent_IdOrderByCreatedAtDesc(id));
             return buildFormModel(model, studentRequest, "A student with this Student ID already exists.", id);
         }
 

@@ -7,4 +7,5 @@ import lombok.Setter;
 @Setter
 public class ProgramRequest {
     private String name;
+    private Long licenceTypeId;
 }

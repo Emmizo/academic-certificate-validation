@@ -87,6 +87,7 @@ public class CertificateService {
                 .student(student)
                 .degree(req.getDegree())
                 .program(program)
+                .licenceType(program.getLicenceType())
                 .institution(req.getInstitution())
                 .issueDate(req.getIssueDate())
                 .keyPair(activeKeyPair)
@@ -126,7 +127,10 @@ public class CertificateService {
         if (req.getDegree() != null) {
             cert.setDegree(req.getDegree());
             programRepository.findByNameIgnoreCaseAndActiveTrue(req.getDegree().trim())
-                    .ifPresent(cert::setProgram);
+                    .ifPresent(program -> {
+                        cert.setProgram(program);
+                        cert.setLicenceType(program.getLicenceType());
+                    });
         }
         if (req.getInstitution() != null) {
             cert.setInstitution(req.getInstitution());
@@ -183,7 +187,7 @@ public class CertificateService {
      * Allowed even when the principal has not yet signed (PENDING_APPROVAL).
      */
     public Certificate sendCertificateToStudent(Long certificateId, User sender) {
-        Certificate cert = certificateRepository.findById(certificateId)
+        Certificate cert = certificateRepository.findByIdWithDetails(certificateId)
                 .orElseThrow(() -> new IllegalArgumentException("Certificate not found"));
         if (cert.getApprovalStatus() == CertificateApprovalStatus.REJECTED) {
             throw new IllegalStateException("Cannot send a rejected certificate");

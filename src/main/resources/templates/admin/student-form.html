@@ -64,6 +64,22 @@
             </button>
         </form>
     </div>
+
+    <div th:if="${studentCertificates != null and !#lists.isEmpty(studentCertificates)}"
+         class="mt-6 max-w-3xl rounded-2xl border border-slate-200 bg-white p-6">
+        <h2 class="text-lg font-semibold text-slate-900">Linked Certificates</h2>
+        <p class="mt-1 text-sm text-slate-600">Certificates issued to this student.</p>
+        <ul class="mt-4 divide-y divide-slate-100">
+            <li th:each="c : ${studentCertificates}" class="py-3 flex items-center justify-between gap-4">
+                <div>
+                    <div class="font-mono text-sm font-semibold text-slate-900" th:text="${c.certificateId}"></div>
+                    <div class="text-xs text-slate-600" th:text="${c.degree} + ' · ' + ${c.issueDate}"></div>
+                </div>
+                <a th:href="@{/admin/certificates/{id}(id=${c.id})}"
+                   class="text-sm font-semibold text-[#164655] hover:text-[#0f303a]">View</a>
+            </li>
+        </ul>
+    </div>
 </main>
 </body>
 </html>

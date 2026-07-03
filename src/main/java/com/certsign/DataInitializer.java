@@ -1,10 +1,12 @@
 package com.certsign;
 
 import com.certsign.model.Program;
+import com.certsign.model.LicenceType;
 import com.certsign.model.Student;
 import com.certsign.model.StudentStatus;
 import com.certsign.model.User;
 import com.certsign.model.UserRole;
+import com.certsign.repository.LicenceTypeRepository;
 import com.certsign.repository.ProgramRepository;
 import com.certsign.repository.StudentRepository;
 import com.certsign.repository.UserRepository;
@@ -19,6 +21,7 @@ import org.springframework.stereotype.Component;
 public class DataInitializer implements CommandLineRunner {
 
     private final UserRepository userRepository;
+    private final LicenceTypeRepository licenceTypeRepository;
     private final ProgramRepository programRepository;
     private final StudentRepository studentRepository;
     private final PasswordEncoder passwordEncoder;
@@ -30,10 +33,12 @@ public class DataInitializer implements CommandLineRunner {
     private String adminPassword;
 
     public DataInitializer(UserRepository userRepository,
+                           LicenceTypeRepository licenceTypeRepository,
                            ProgramRepository programRepository,
                            StudentRepository studentRepository,
                            PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.licenceTypeRepository = licenceTypeRepository;
         this.programRepository = programRepository;
         this.studentRepository = studentRepository;
         this.passwordEncoder = passwordEncoder;
@@ -42,6 +47,7 @@ public class DataInitializer implements CommandLineRunner {
     @Override
     public void run(String... args) {
         seedUsers();
+        seedLicenceTypes();
         seedPrograms();
         seedStudents();
     }
@@ -70,24 +76,57 @@ public class DataInitializer implements CommandLineRunner {
         }
     }
 
-    private void seedPrograms() {
-        List<String> programs = List.of(
-            "Bachelor of Science in Computer Science",
-            "Bachelor of Business Administration",
-            "Bachelor of Education",
-            "Bachelor of Engineering in Civil Engineering",
-            "Diploma in Information Technology",
-            "Diploma in Accounting",
-            "Certificate in Project Management"
+    private void seedLicenceTypes() {
+        record Seed(String name, String description) {}
+
+        List<Seed> types = List.of(
+                new Seed("Bachelor", "Undergraduate degree qualification"),
+                new Seed("Diploma", "Diploma-level qualification"),
+                new Seed("Certificate", "Short professional certificate qualification")
         );
 
-        for (String name : programs) {
-            if (programRepository.findByNameIgnoreCase(name).isEmpty()) {
-                programRepository.save(Program.builder()
-                        .name(name)
+        for (Seed s : types) {
+            if (licenceTypeRepository.findByNameIgnoreCase(s.name()).isEmpty()) {
+                licenceTypeRepository.save(LicenceType.builder()
+                        .name(s.name())
+                        .description(s.description())
                         .active(true)
                         .build());
-                System.out.printf("[Seed] Created program: %s%n", name);
+                System.out.printf("[Seed] Created licence type: %s%n", s.name());
+            }
+        }
+    }
+
+    private void seedPrograms() {
+        record ProgramSeed(String name, String licenceTypeName) {}
+
+        List<ProgramSeed> programs = List.of(
+            new ProgramSeed("Bachelor of Science in Computer Science", "Bachelor"),
+            new ProgramSeed("Bachelor of Business Administration", "Bachelor"),
+            new ProgramSeed("Bachelor of Education", "Bachelor"),
+            new ProgramSeed("Bachelor of Engineering in Civil Engineering", "Bachelor"),
+            new ProgramSeed("Diploma in Information Technology", "Diploma"),
+            new ProgramSeed("Diploma in Accounting", "Diploma"),
+            new ProgramSeed("Certificate in Project Management", "Certificate")
+        );
+
+        for (ProgramSeed s : programs) {
+            LicenceType licenceType = licenceTypeRepository.findByNameIgnoreCase(s.licenceTypeName())
+                    .orElse(null);
+            var existing = programRepository.findByNameIgnoreCase(s.name());
+            if (existing.isPresent()) {
+                Program program = existing.get();
+                if (program.getLicenceType() == null && licenceType != null) {
+                    program.setLicenceType(licenceType);
+                    programRepository.save(program);
+                }
+            } else {
+                programRepository.save(Program.builder()
+                        .name(s.name())
+                        .licenceType(licenceType)
+                        .active(true)
+                        .build());
+                System.out.printf("[Seed] Created program: %s%n", s.name());
             }
         }
     }

@@ -2,13 +2,9 @@ package com.certsign.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.ForeignKey;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
@@ -22,6 +18,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * Qualification level (e.g. Bachelor, Diploma). Related to {@link Program} and {@link Certificate}.
+ */
 @Getter
 @Setter
 @NoArgsConstructor
@@ -29,21 +28,20 @@ import lombok.Setter;
 @Builder
 @Entity
 @Table(
-        name = "programs",
-        uniqueConstraints = {@UniqueConstraint(name = "uk_programs_name", columnNames = {"name"})}
+        name = "licence_types",
+        uniqueConstraints = {@UniqueConstraint(name = "uk_licence_types_name", columnNames = {"name"})}
 )
-public class Program {
+public class LicenceType {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 200)
+    @Column(nullable = false, length = 120)
     private String name;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = true)
-    @JoinColumn(name = "licence_type_id", foreignKey = @ForeignKey(name = "fk_programs_licence_type"))
-    private LicenceType licenceType;
+    @Column(length = 255)
+    private String description;
 
     @Column(nullable = false)
     private boolean active;
@@ -51,7 +49,11 @@ public class Program {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    @OneToMany(mappedBy = "program")
+    @OneToMany(mappedBy = "licenceType")
+    @Builder.Default
+    private List<Program> programs = new ArrayList<>();
+
+    @OneToMany(mappedBy = "licenceType")
     @Builder.Default
     private List<Certificate> certificates = new ArrayList<>();
 
