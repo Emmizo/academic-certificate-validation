@@ -126,7 +126,7 @@
     <!-- Pending approval action panel (Principal / Admin only) -->
     <div class="rounded-2xl border border-amber-200 bg-amber-50 p-6"
          th:if="${certificate.approvalStatus != null and certificate.approvalStatus.name() == 'PENDING_APPROVAL'}"
-         sec:authorize="hasAnyRole('ADMIN','PRINCIPAL')">
+         sec:authorize="hasAnyRole('SUPER_ADMIN','ADMIN','PRINCIPAL')">
         <p class="text-sm font-semibold text-amber-900">This certificate is awaiting your signature.</p>
         <p class="mt-1 text-xs text-amber-800">Signing approves the certificate. The Secretary will send it to the student afterward.</p>
         <div class="mt-4 flex flex-wrap items-start gap-4">
@@ -154,7 +154,7 @@
     <!-- Secretary send panel -->
     <div class="rounded-2xl border border-blue-200 bg-blue-50 p-6"
          th:if="${certificate.approvalStatus == null or certificate.approvalStatus.name() != 'REJECTED'}"
-         sec:authorize="hasAnyRole('ADMIN','SECRETARY')">
+         sec:authorize="hasAnyRole('SUPER_ADMIN','ADMIN','SECRETARY')">
         <p class="text-sm font-semibold text-blue-900">Send certificate to student</p>
         <p class="mt-1 text-xs text-blue-800">
             The student's certificate PDF will be attached to the email sent to their registered address.
@@ -236,4 +236,3 @@
 </main>
 </body>
 </html>
-

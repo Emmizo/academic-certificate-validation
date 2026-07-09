@@ -62,8 +62,8 @@ public class CertificateService {
      * <ul>
      *   <li>Find the active RSA key pair (RSA‑2048) to be used for signing.</li>
      *   <li>Load the referenced student and copy snapshot details onto the certificate.</li>
-     *   <li>Build a canonical string, hash it with SHA‑256, and sign the hash with RSA.</li>
-     *   <li>Persist the certificate with its hash and signature.</li>
+     *   <li>Build a canonical string and hash it with SHA‑256.</li>
+     *   <li>Persist the unsigned draft until the Principal approves/signs it.</li>
      * </ul>
      */
     public Certificate issueCertificate(CertificateRequest req, User issuedBy) {
@@ -97,19 +97,18 @@ public class CertificateService {
 
         String canonical = cryptoService.buildCanonicalString(cert);
         String hash = cryptoService.hashWithSHA256(canonical);
-        String signature = cryptoService.signData(hash, activeKeyPair.getPrivateKeyEncrypted());
 
         cert.setDocumentHash(hash);
-        cert.setDigitalSignature(signature);
+        cert.setDigitalSignature("");
 
         return certificateRepository.save(cert);
     }
 
     @Transactional
     /**
-     * Updates an existing certificate's core fields and re‑signs it so that any changes
-     * (for example correcting a name, degree or institution) are reflected in the
-     * cryptographic hash and digital signature.
+     * Updates an existing certificate's core fields and returns it to unsigned draft status.
+     * Any changes are reflected in a fresh document hash; the Principal must approve/sign
+     * again before the certificate is cryptographically valid.
      */
     public Certificate updateCertificate(Long certificateId, CertificateRequest req) {
         Certificate cert = certificateRepository.findById(certificateId)
@@ -151,10 +150,9 @@ public class CertificateService {
 
         String canonical = cryptoService.buildCanonicalString(cert);
         String hash = cryptoService.hashWithSHA256(canonical);
-        String signature = cryptoService.signData(hash, cert.getKeyPair().getPrivateKeyEncrypted());
 
         cert.setDocumentHash(hash);
-        cert.setDigitalSignature(signature);
+        cert.setDigitalSignature("");
 
         return certificateRepository.save(cert);
     }
@@ -163,6 +161,17 @@ public class CertificateService {
     public Certificate approveCertificate(Long certificateId, User approver) {
         Certificate cert = certificateRepository.findById(certificateId)
                 .orElseThrow(() -> new IllegalArgumentException("Certificate not found"));
+
+        if (cert.getKeyPair() == null) {
+            throw new IllegalStateException("Certificate has no associated key pair for signing");
+        }
+
+        String canonical = cryptoService.buildCanonicalString(cert);
+        String hash = cryptoService.hashWithSHA256(canonical);
+        String signature = cryptoService.signData(hash, cert.getKeyPair().getPrivateKeyEncrypted());
+
+        cert.setDocumentHash(hash);
+        cert.setDigitalSignature(signature);
         cert.setApprovalStatus(CertificateApprovalStatus.APPROVED);
         cert.setApprovedBy(approver);
         cert.setApprovedAt(LocalDateTime.now());
@@ -309,4 +318,3 @@ public class CertificateService {
         return sb.toString();
     }
 }
-

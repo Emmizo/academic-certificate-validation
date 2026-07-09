@@ -5,6 +5,7 @@
 package com.certsign.model;
 
 public enum UserRole {
+    SUPER_ADMIN,
     ADMIN,
     USER_MANAGER,
     SIGNER,
@@ -12,4 +13,3 @@ public enum UserRole {
     SECRETARY,
     PRINCIPAL
 }
-

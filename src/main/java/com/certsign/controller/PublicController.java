@@ -1,7 +1,7 @@
 // SDLC Phase: Implementation
 // Component: PublicController
 // Requirements covered: FR-06, FR-10, NFR-03
-// Description: Serves public pages for landing and certificate verification
+// Description: Serves public certificate verification pages
 package com.certsign.controller;
 
 import com.certsign.dto.VerificationResult;
@@ -19,18 +19,15 @@ public class PublicController {
     private final CertificateService certificateService;
 
     /**
-     * Creates the public controller that exposes landing and verification endpoints.
+     * Creates the public controller that exposes certificate verification endpoints.
      */
     public PublicController(CertificateService certificateService) {
         this.certificateService = certificateService;
     }
 
-    /**
-     * Serves the public landing page.
-     */
     @GetMapping("/")
-    public String index() {
-        return "index";
+    public String home(Model model) {
+        return prepareVerifyForm("", model);
     }
 
     /**
@@ -39,9 +36,7 @@ public class PublicController {
      */
     @GetMapping("/verify")
     public String verifyForm(@RequestParam(value = "certificateId", required = false) String certificateId, Model model) {
-        model.addAttribute("certificateId", certificateId == null ? "" : certificateId);
-        model.addAttribute("result", null);
-        return "verify";
+        return prepareVerifyForm(certificateId, model);
     }
 
     /**
@@ -60,5 +55,10 @@ public class PublicController {
         model.addAttribute("result", result);
         return "verify";
     }
-}
 
+    private String prepareVerifyForm(String certificateId, Model model) {
+        model.addAttribute("certificateId", certificateId == null ? "" : certificateId);
+        model.addAttribute("result", null);
+        return "verify";
+    }
+}

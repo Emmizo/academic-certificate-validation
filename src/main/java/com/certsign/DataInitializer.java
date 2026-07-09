@@ -56,6 +56,7 @@ public class DataInitializer implements CommandLineRunner {
         record Seed(String username, String email, String password, UserRole role) {}
 
         List<Seed> seeds = List.of(
+            new Seed("superadmin",   "superadmin@tumbacollege.rw", "SuperAdmin@123", UserRole.SUPER_ADMIN),
             new Seed(adminUsername,  "admin@tumbacollege.rw",     adminPassword,   UserRole.ADMIN),
             new Seed("principal",    "principal@tumbacollege.rw", "Principal@123", UserRole.PRINCIPAL),
             new Seed("secretary",    "secretary@tumbacollege.rw", "Secretary@123", UserRole.SECRETARY),

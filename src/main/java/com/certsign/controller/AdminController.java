@@ -99,7 +99,7 @@ public class AdminController {
         long totalCerts = certificateRepository.count();
         var activeKey = keyPairRepository.findFirstByActiveTrueOrderByCreatedAtDesc();
         var lastCert = certificateRepository.findFirstByOrderByCreatedAtDesc();
-        var recentCerts = certificateRepository.findTop3ByOrderByCreatedAtDesc();
+        var users = userRepository.findAll();
 
         // Build simple 7-day issuance trend for chart + stat
         LocalDate today = LocalDate.now();
@@ -117,13 +117,35 @@ public class AdminController {
         }
 
         long certsLast7Days = chartValues.stream().mapToLong(Long::longValue).sum();
+        List<String> roleLabels = new ArrayList<>();
+        List<Long> roleValues = new ArrayList<>();
+        for (UserRole role : UserRole.values()) {
+            long countForRole = users.stream()
+                    .filter(user -> user.getRole() == role)
+                    .count();
+            if (countForRole > 0) {
+                roleLabels.add(role.name());
+                roleValues.add(countForRole);
+            }
+        }
+        long activeUsers = users.stream().filter(User::isEnabled).count();
+        long inactiveUsers = users.size() - activeUsers;
+        boolean canImpersonate = auth.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_SUPER_ADMIN".equals(a.getAuthority()));
 
         model.addAttribute("username", auth.getName());
         model.addAttribute("totalCerts", totalCerts);
         model.addAttribute("activeKeyPresent", activeKey.isPresent());
         model.addAttribute("activeKeyCreatedAt", activeKey.map(KeyPair::getCreatedAt).orElse(null));
         model.addAttribute("lastCertificateDate", lastCert.map(c -> c.getCreatedAt().toLocalDate()).orElse(null));
-        model.addAttribute("recentCertificates", recentCerts);
+        model.addAttribute("users", users);
+        model.addAttribute("roles", UserRole.values());
+        model.addAttribute("canImpersonate", canImpersonate);
+        model.addAttribute("totalUsers", users.size());
+        model.addAttribute("activeUsers", activeUsers);
+        model.addAttribute("inactiveUsers", inactiveUsers);
+        model.addAttribute("roleLabels", roleLabels);
+        model.addAttribute("roleValues", roleValues);
         model.addAttribute("chartLabels", chartLabels);
         model.addAttribute("chartValues", chartValues);
         model.addAttribute("certsLast7Days", certsLast7Days);
@@ -488,8 +510,16 @@ public class AdminController {
                               Authentication auth,
                               HttpServletRequest request,
                               HttpServletResponse response) {
+        boolean isSuperAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_SUPER_ADMIN".equals(a.getAuthority()));
+        if (!isSuperAdmin) {
+            throw new org.springframework.security.access.AccessDeniedException("Only super admin can impersonate users");
+        }
         User targetUser = userRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        if (!targetUser.isEnabled()) {
+            throw new IllegalStateException("Cannot impersonate a disabled user");
+        }
         UserDetails details = userService.loadUserByUsername(targetUser.getUsername());
         UsernamePasswordAuthenticationToken newAuth =
                 new UsernamePasswordAuthenticationToken(details, null, details.getAuthorities());
@@ -641,4 +671,3 @@ public class AdminController {
         return cryptoService.verifySignature(rebuiltHash, cert.getDigitalSignature(), cert.getKeyPair().getPublicKey());
     }
 }
-

@@ -27,16 +27,17 @@
         <div>
             <div class="px-2 text-[0.7rem] font-semibold uppercase tracking-wide text-slate-200/70">Main</div>
             <div class="mt-2 space-y-1">
-                <!-- Dashboard — all authenticated staff -->
-                <a th:href="@{/admin/dashboard}"
+                <!-- Dashboard — super admin and admin only -->
+                <a sec:authorize="hasAnyRole('SUPER_ADMIN','ADMIN')"
+                   th:href="@{/admin/dashboard}"
                    th:classappend="${#httpServletRequest != null and #httpServletRequest.requestURI.startsWith('/admin/dashboard')} ? ' bg-white text-[#164655]' : ''"
                    class="flex items-center gap-2 rounded-lg px-3 py-2 text-slate-100 hover:bg-white/10 hover:text-white transition-colors duration-150">
                     <span class="h-4 w-4 rounded-full border border-white/40 flex items-center justify-center text-[0.55rem]">D</span>
                     <span>Dashboard</span>
                 </a>
 
-                <!-- Students — admin, secretary, principal, signer -->
-                <a sec:authorize="hasAnyRole('ADMIN','SECRETARY','PRINCIPAL','SIGNER')"
+                <!-- Students — operational staff only -->
+                <a sec:authorize="hasAnyRole('SECRETARY','PRINCIPAL','SIGNER')"
                    th:href="@{/admin/students}"
                    th:classappend="${#httpServletRequest != null and #httpServletRequest.requestURI.startsWith('/admin/students')} ? ' bg-white text-[#164655]' : ''"
                    class="flex items-center gap-2 rounded-lg px-3 py-2 text-slate-100 hover:bg-white/10 transition-colors duration-150">
@@ -44,8 +45,8 @@
                     <span>Students</span>
                 </a>
 
-                <!-- Programs — admin, secretary -->
-                <a sec:authorize="hasAnyRole('ADMIN','SECRETARY')"
+                <!-- Programs — secretary only -->
+                <a sec:authorize="hasRole('SECRETARY')"
                    th:href="@{/admin/programs}"
                    th:classappend="${#httpServletRequest != null and #httpServletRequest.requestURI.startsWith('/admin/programs')} ? ' bg-white text-[#164655]' : ''"
                    class="flex items-center gap-2 rounded-lg px-3 py-2 text-slate-100 hover:bg-white/10 transition-colors duration-150">
@@ -53,8 +54,8 @@
                     <span>Programs</span>
                 </a>
 
-                <!-- Certificates — all staff except verifier -->
-                <a sec:authorize="hasAnyRole('ADMIN','SECRETARY','PRINCIPAL','SIGNER')"
+                <!-- Certificates — operational staff only -->
+                <a sec:authorize="hasAnyRole('SECRETARY','PRINCIPAL','SIGNER')"
                    th:href="@{/admin/certificates}"
                    th:classappend="${#httpServletRequest != null and #httpServletRequest.requestURI.startsWith('/admin/certificates')} ? ' bg-white text-[#164655]' : ''"
                    class="flex items-center gap-2 rounded-lg px-3 py-2 text-slate-100 hover:bg-white/10 transition-colors duration-150">
@@ -68,7 +69,7 @@
                 </a>
 
                 <!-- Users — admin only -->
-                <a sec:authorize="hasRole('ADMIN')"
+                <a sec:authorize="hasAnyRole('SUPER_ADMIN','ADMIN')"
                    th:href="@{/admin/users}"
                    th:classappend="${#httpServletRequest != null and #httpServletRequest.requestURI.startsWith('/admin/users')} ? ' bg-white text-[#164655]' : ''"
                    class="flex items-center gap-2 rounded-lg px-3 py-2 text-slate-100 hover:bg-white/10 transition-colors duration-150">
@@ -78,7 +79,7 @@
             </div>
         </div>
 
-        <div sec:authorize="hasAnyRole('ADMIN','SECRETARY','SIGNER')">
+        <div sec:authorize="hasAnyRole('SECRETARY','SIGNER')">
             <div class="px-2 text-[0.7rem] font-semibold uppercase tracking-wide text-slate-200/70">Issuance</div>
             <div class="mt-2 space-y-1">
                 <!-- Issue — admin, secretary, signer -->
@@ -89,8 +90,8 @@
                     <span>Issue</span>
                 </a>
 
-                <!-- Keys — admin, signer only -->
-                <a sec:authorize="hasAnyRole('ADMIN','SIGNER')"
+                <!-- Keys — signer only -->
+                <a sec:authorize="hasRole('SIGNER')"
                    th:href="@{/admin/keys}"
                    th:classappend="${#httpServletRequest != null and #httpServletRequest.requestURI.startsWith('/admin/keys')} ? ' bg-white text-[#164655]' : ''"
                    class="flex items-center gap-2 rounded-lg px-3 py-2 text-slate-100 hover:bg-white/10 transition-colors duration-150">
@@ -100,7 +101,7 @@
             </div>
         </div>
 
-        <div>
+        <div sec:authorize="!hasAnyRole('SUPER_ADMIN','ADMIN')">
             <div class="px-2 text-[0.7rem] font-semibold uppercase tracking-wide text-slate-200/70">Public</div>
             <a th:href="@{/verify}"
                th:classappend="${#httpServletRequest != null and #httpServletRequest.requestURI.startsWith('/verify')} ? ' bg-white text-[#164655]' : ''"

@@ -69,7 +69,7 @@ class CertificateServiceTest {
     }
 
     @Test
-    void issueCertificate_shouldGenerateHashAndSignature() {
+    void issueCertificate_shouldGenerateHashButNoSignatureUntilApproval() {
         // Arrange: active key pair and student
         var keyMap = cryptoService.generateRSAKeyPair();
         KeyPair kp = KeyPair.builder()
@@ -118,9 +118,57 @@ class CertificateServiceTest {
 
         // Assert
         assertThat(issued.getDocumentHash()).isNotBlank();
-        assertThat(issued.getDigitalSignature()).isNotBlank();
+        assertThat(issued.getDigitalSignature()).isEmpty();
+        assertThat(issued.getApprovalStatus()).isEqualTo(CertificateApprovalStatus.PENDING_APPROVAL);
         assertThat(issued.getKeyPair()).isEqualTo(kp);
         assertThat(issued.getStudent()).isEqualTo(student);
+    }
+
+    @Test
+    void approveCertificate_shouldGenerateDigitalSignature() {
+        var keyMap = cryptoService.generateRSAKeyPair();
+        KeyPair kp = KeyPair.builder()
+                .id(1L)
+                .publicKey(keyMap.get("publicKey"))
+                .privateKeyEncrypted(keyMap.get("privateKey"))
+                .createdAt(LocalDateTime.now())
+                .active(true)
+                .build();
+
+        Certificate cert = Certificate.builder()
+                .id(42L)
+                .certificateId("CERT-DRAFT")
+                .studentName("Draft Student")
+                .studentId("STU-001")
+                .degree("BSc Computer Science")
+                .institution("CertSign University")
+                .issueDate(LocalDate.now())
+                .keyPair(kp)
+                .issuedBy(User.builder().id(5L).username("admin").build())
+                .approvalStatus(CertificateApprovalStatus.PENDING_APPROVAL)
+                .digitalSignature("")
+                .createdAt(LocalDateTime.now())
+                .build();
+        cert.setDocumentHash(cryptoService.hashWithSHA256(cryptoService.buildCanonicalString(cert)));
+
+        User principal = User.builder().id(6L).username("principal").build();
+
+        when(certificateRepository.findById(cert.getId()))
+                .thenReturn(Optional.of(cert));
+        when(certificateRepository.save(any(Certificate.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0, Certificate.class));
+
+        Certificate approved = certificateService.approveCertificate(cert.getId(), principal);
+
+        assertThat(approved.getApprovalStatus()).isEqualTo(CertificateApprovalStatus.APPROVED);
+        assertThat(approved.getApprovedBy()).isEqualTo(principal);
+        assertThat(approved.getApprovedAt()).isNotNull();
+        assertThat(approved.getDigitalSignature()).isNotBlank();
+        assertThat(cryptoService.verifySignature(
+                approved.getDocumentHash(),
+                approved.getDigitalSignature(),
+                kp.getPublicKey()
+        )).isTrue();
     }
 
     @Test
@@ -261,7 +309,7 @@ class CertificateServiceTest {
     }
 
     @Test
-    void updateCertificate_shouldReSignWhenFieldsChange() {
+    void updateCertificate_shouldReturnToUnsignedDraftWhenFieldsChange() {
         // Arrange: start from a valid, issued certificate
         var keyMap = cryptoService.generateRSAKeyPair();
         KeyPair kp = KeyPair.builder()
@@ -305,29 +353,22 @@ class CertificateServiceTest {
         when(studentRepository.findById(student.getId())).thenReturn(Optional.of(student));
         when(certificateRepository.save(any(Certificate.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0, Certificate.class));
-        // verifyCertificate will look up by certificateId; return the same instance so that
-        // the updated hash/signature are used during verification
-        when(certificateRepository.findByCertificateId("CERT-UPDATE-1"))
-                .thenReturn(Optional.of(cert));
-
         CertificateRequest updateReq = new CertificateRequest();
         updateReq.setStudentRefId(student.getId());
         updateReq.setDegree("New Degree");
         updateReq.setInstitution("New Institution");
         updateReq.setIssueDate(LocalDate.now());
 
-        // Act: update + re-sign
+        // Act: update returns the certificate to unsigned draft status
         Certificate updated = certificateService.updateCertificate(50L, updateReq);
-        updated.setApprovalStatus(CertificateApprovalStatus.APPROVED);
 
-        // Assert: hash and signature are regenerated and certificate still verifies
+        // Assert: hash is regenerated, signature is cleared until Principal approval
         assertThat(updated.getDegree()).isEqualTo("New Degree");
         assertThat(updated.getInstitution()).isEqualTo("New Institution");
         assertThat(updated.getDocumentHash()).isNotEqualTo(hash);
-        assertThat(updated.getDigitalSignature()).isNotEqualTo(signature);
-
-        VerificationResult result = certificateService.verifyCertificate("CERT-UPDATE-1", "127.0.0.1");
-        assertThat(result.isValid()).isTrue();
+        assertThat(updated.getDigitalSignature()).isEmpty();
+        assertThat(updated.getApprovalStatus()).isEqualTo(CertificateApprovalStatus.PENDING_APPROVAL);
+        assertThat(updated.getApprovedBy()).isNull();
+        assertThat(updated.getApprovedAt()).isNull();
     }
 }
-

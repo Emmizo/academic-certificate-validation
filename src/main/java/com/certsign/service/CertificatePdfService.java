@@ -5,6 +5,7 @@
 package com.certsign.service;
 
 import com.certsign.model.Certificate;
+import com.certsign.model.CertificateApprovalStatus;
 import com.lowagie.text.Document;
 import com.lowagie.text.Element;
 import com.lowagie.text.Font;
@@ -94,7 +95,11 @@ public class CertificatePdfService {
         heading.setSpacingAfter(12f);
         doc.add(heading);
 
-        Paragraph sub = new Paragraph("Tumba College — Digitally signed and verifiable", subTitleFont);
+        boolean signedByPrincipal = isSignedByPrincipal(certificate);
+        String statusText = signedByPrincipal
+                ? "Tumba College - Digitally signed and verifiable"
+                : "Tumba College - Draft certificate, pending Principal signature";
+        Paragraph sub = new Paragraph(statusText, subTitleFont);
         sub.setAlignment(Element.ALIGN_CENTER);
         sub.setSpacingAfter(24f);
         doc.add(sub);
@@ -144,8 +149,8 @@ public class CertificatePdfService {
         institutionPara.setSpacingAfter(20f);
         doc.add(institutionPara);
 
-        // Signature image + line
-        Image signatureImage = loadSignatureImage();
+        // Signature image is shown only after Principal approval.
+        Image signatureImage = signedByPrincipal ? loadSignatureImage() : null;
         if (signatureImage != null) {
             signatureImage.scaleToFit(180f, 60f);
             signatureImage.setAlignment(Image.ALIGN_CENTER);
@@ -157,7 +162,10 @@ public class CertificatePdfService {
         sigLine.setSpacingBefore(12f);
         sigLine.setSpacingAfter(4f);
         doc.add(sigLine);
-        Paragraph sigLabel = new Paragraph("Authorized Signature", sigLabelFont);
+        Paragraph sigLabel = new Paragraph(
+                signedByPrincipal ? "Authorized Signature" : "Awaiting Principal Signature",
+                sigLabelFont
+        );
         sigLabel.setAlignment(Element.ALIGN_CENTER);
         sigLabel.setSpacingAfter(16f);
         doc.add(sigLabel);
@@ -213,6 +221,12 @@ public class CertificatePdfService {
         }
     }
 
+    private boolean isSignedByPrincipal(Certificate certificate) {
+        return certificate != null
+                && (certificate.getApprovalStatus() == null
+                || certificate.getApprovalStatus() == CertificateApprovalStatus.APPROVED);
+    }
+
     /**
      * Adds a single metadata cell with label above value (used in a 3‑column footer table).
      */
@@ -228,4 +242,3 @@ public class CertificatePdfService {
         table.addCell(cell);
     }
 }
-

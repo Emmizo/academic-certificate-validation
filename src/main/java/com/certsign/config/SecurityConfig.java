@@ -35,48 +35,52 @@ public class SecurityConfig {
                                 "/reset-password"
                         ).permitAll()
                         .requestMatchers("/css/**", "/js/**", "/images/**", "/webjars/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/admin/users").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/admin/users/*/edit").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/admin/users/*/role").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/admin/users/*").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/admin/dashboard").hasAnyRole("SUPER_ADMIN", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/admin/users").hasAnyRole("SUPER_ADMIN", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/admin/users/*/edit").hasAnyRole("SUPER_ADMIN", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/admin/users/*/role").hasAnyRole("SUPER_ADMIN", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/admin/users/*").hasAnyRole("SUPER_ADMIN", "ADMIN")
                         // Admin-only actions
-                        .requestMatchers(HttpMethod.POST, "/admin/users/*/enabled").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/admin/users/*/impersonate").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/admin/users").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/admin/users/*/edit").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/admin/users/*/role").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/admin/users/*").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/admin/programs").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/admin/programs/*/activate").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/admin/programs/*/deactivate").hasRole("ADMIN")
-                        .requestMatchers("/admin/users/new").hasAnyRole("ADMIN", "USER_MANAGER")
-                        .requestMatchers(HttpMethod.POST, "/admin/users").hasAnyRole("ADMIN", "USER_MANAGER")
+                        .requestMatchers(HttpMethod.POST, "/admin/users/*/enabled").hasAnyRole("SUPER_ADMIN", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/admin/users/*/impersonate").hasRole("SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/admin/programs").hasAnyRole("SUPER_ADMIN", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/admin/programs/*/activate").hasAnyRole("SUPER_ADMIN", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/admin/programs/*/deactivate").hasAnyRole("SUPER_ADMIN", "ADMIN")
+                        .requestMatchers("/admin/users/new").hasAnyRole("SUPER_ADMIN", "ADMIN", "USER_MANAGER")
+                        .requestMatchers(HttpMethod.POST, "/admin/users").hasAnyRole("SUPER_ADMIN", "ADMIN", "USER_MANAGER")
                         // Approve / reject / bulk — PRINCIPAL or ADMIN
-                        .requestMatchers(HttpMethod.POST, "/admin/certificates/bulk-approve").hasAnyRole("ADMIN", "PRINCIPAL")
-                        .requestMatchers(HttpMethod.POST, "/admin/certificates/*/approve").hasAnyRole("ADMIN", "PRINCIPAL")
-                        .requestMatchers(HttpMethod.POST, "/admin/certificates/*/reject").hasAnyRole("ADMIN", "PRINCIPAL")
+                        .requestMatchers(HttpMethod.POST, "/admin/certificates/bulk-approve").hasAnyRole("SUPER_ADMIN", "ADMIN", "PRINCIPAL")
+                        .requestMatchers(HttpMethod.POST, "/admin/certificates/*/approve").hasAnyRole("SUPER_ADMIN", "ADMIN", "PRINCIPAL")
+                        .requestMatchers(HttpMethod.POST, "/admin/certificates/*/reject").hasAnyRole("SUPER_ADMIN", "ADMIN", "PRINCIPAL")
                         // Secretary sends certificates to students (with or without principal signature)
-                        .requestMatchers(HttpMethod.POST, "/admin/certificates/bulk-send").hasAnyRole("ADMIN", "SECRETARY")
-                        .requestMatchers(HttpMethod.POST, "/admin/certificates/*/send").hasAnyRole("ADMIN", "SECRETARY")
-                        .requestMatchers(HttpMethod.POST, "/admin/certificates/*/resend-email").hasAnyRole("ADMIN", "SECRETARY", "PRINCIPAL")
+                        .requestMatchers(HttpMethod.POST, "/admin/certificates/bulk-send").hasAnyRole("SUPER_ADMIN", "ADMIN", "SECRETARY")
+                        .requestMatchers(HttpMethod.POST, "/admin/certificates/*/send").hasAnyRole("SUPER_ADMIN", "ADMIN", "SECRETARY")
+                        .requestMatchers(HttpMethod.POST, "/admin/certificates/*/resend-email").hasAnyRole("SUPER_ADMIN", "ADMIN", "SECRETARY", "PRINCIPAL")
                         // Secretary can issue (access issue form and POST)
-                        .requestMatchers(HttpMethod.GET, "/admin/issue").hasAnyRole("ADMIN", "SIGNER", "SECRETARY")
-                        .requestMatchers(HttpMethod.POST, "/admin/issue").hasAnyRole("ADMIN", "SIGNER", "SECRETARY")
+                        .requestMatchers(HttpMethod.GET, "/admin/issue").hasAnyRole("SUPER_ADMIN", "ADMIN", "SIGNER", "SECRETARY")
+                        .requestMatchers(HttpMethod.POST, "/admin/issue").hasAnyRole("SUPER_ADMIN", "ADMIN", "SIGNER", "SECRETARY")
                         // All authenticated staff can reach admin area
-                        .requestMatchers("/admin/**").hasAnyRole("ADMIN", "SIGNER", "PRINCIPAL", "SECRETARY", "USER_MANAGER")
+                        .requestMatchers("/admin/**").hasAnyRole("SUPER_ADMIN", "ADMIN", "SIGNER", "PRINCIPAL", "SECRETARY", "USER_MANAGER")
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form
                         .loginPage("/login")
                         .loginProcessingUrl("/login")
                         .successHandler((request, response, authentication) -> {
+                            boolean isSuperAdminOrAdmin = authentication.getAuthorities().stream()
+                                    .anyMatch(a -> "ROLE_SUPER_ADMIN".equals(a.getAuthority())
+                                            || "ROLE_ADMIN".equals(a.getAuthority()));
+                            if (isSuperAdminOrAdmin) {
+                                response.sendRedirect("/admin/dashboard");
+                                return;
+                            }
                             boolean isUserManager = authentication.getAuthorities().stream()
                                     .anyMatch(a -> "ROLE_USER_MANAGER".equals(a.getAuthority()));
                             if (isUserManager) {
                                 response.sendRedirect("/admin/users/new");
                                 return;
                             }
-                            response.sendRedirect("/admin/dashboard");
+                            response.sendRedirect("/admin/certificates");
                         })
                         .permitAll()
                 )
@@ -95,4 +99,3 @@ public class SecurityConfig {
         return http.build();
     }
 }
-

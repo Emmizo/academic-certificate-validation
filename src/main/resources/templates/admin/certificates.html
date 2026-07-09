@@ -95,13 +95,13 @@
         <div class="flex flex-wrap items-center gap-3 px-6 py-3 border-b border-slate-100 bg-slate-50">
             <input type="checkbox" id="select-all-certs" class="h-4 w-4 rounded border-slate-300 text-[#164655]"/>
             <label for="select-all-certs" class="text-xs font-semibold text-slate-600 cursor-pointer select-none">Select all</label>
-            <button sec:authorize="hasAnyRole('ADMIN','PRINCIPAL')" type="submit"
+            <button sec:authorize="hasAnyRole('SUPER_ADMIN','ADMIN','PRINCIPAL')" type="submit"
                     formaction="/admin/certificates/bulk-approve"
                     class="ml-auto rounded-lg bg-emerald-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"
                     data-loading-text="Signing...">
                 Bulk Sign Selected
             </button>
-            <button sec:authorize="hasAnyRole('ADMIN','SECRETARY')" type="submit"
+            <button sec:authorize="hasAnyRole('SUPER_ADMIN','ADMIN','SECRETARY')" type="submit"
                     formaction="/admin/certificates/bulk-send"
                     class="rounded-lg bg-[#164655] px-4 py-1.5 text-xs font-semibold text-white hover:bg-[#0f303a]"
                     data-loading-text="Sending...">
@@ -167,7 +167,7 @@
                        class="rounded-md px-2 py-1 text-sm font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-900">
                         Edit
                     </a>
-                    <form sec:authorize="hasAnyRole('ADMIN','SECRETARY')"
+                    <form sec:authorize="hasAnyRole('SUPER_ADMIN','ADMIN','SECRETARY')"
                           th:if="${c.approvalStatus == null or c.approvalStatus.name() != 'REJECTED'}"
                           th:action="@{/admin/certificates/{id}/send(id=${c.id})}"
                           method="post"
@@ -179,7 +179,7 @@
                             <span th:text="${c.sentAt != null} ? 'Resend' : 'Send'">Send</span>
                         </button>
                     </form>
-                    <form sec:authorize="hasAnyRole('ADMIN','PRINCIPAL')"
+                    <form sec:authorize="hasAnyRole('SUPER_ADMIN','ADMIN','PRINCIPAL')"
                           th:if="${c.approvalStatus != null and c.approvalStatus.name() == 'PENDING_APPROVAL'}"
                           th:action="@{/admin/certificates/{id}/approve(id=${c.id})}"
                           method="post"
@@ -191,7 +191,7 @@
                             Sign
                         </button>
                     </form>
-                    <form sec:authorize="hasAnyRole('ADMIN','PRINCIPAL')"
+                    <form sec:authorize="hasAnyRole('SUPER_ADMIN','ADMIN','PRINCIPAL')"
                           th:if="${c.approvalStatus != null and c.approvalStatus.name() == 'PENDING_APPROVAL'}"
                           th:action="@{/admin/certificates/{id}/reject(id=${c.id})}"
                           method="post"
@@ -226,4 +226,3 @@
 </main>
 </body>
 </html>
-

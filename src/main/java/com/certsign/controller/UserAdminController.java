@@ -4,6 +4,7 @@ import com.certsign.model.UserRole;
 import com.certsign.service.MailService;
 import com.certsign.service.UserManagementService;
 import java.util.Arrays;
+import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
@@ -28,15 +29,16 @@ public class UserAdminController {
     }
 
     @GetMapping("/admin/users")
-    public String listUsers(Model model) {
+    public String listUsers(Authentication authentication, Model model) {
         model.addAttribute("users", userManagementService.listUsers());
-        model.addAttribute("roles", Arrays.asList(UserRole.values()));
+        model.addAttribute("roles", availableRoles(authentication));
+        model.addAttribute("canImpersonate", isSuperAdmin(authentication));
         return "admin/users";
     }
 
     @GetMapping("/admin/users/new")
-    public String newUserForm(Model model) {
-        model.addAttribute("roles", Arrays.asList(UserRole.values()));
+    public String newUserForm(Authentication authentication, Model model) {
+        model.addAttribute("roles", availableRoles(authentication));
         return "admin/user-form";
     }
 
@@ -49,10 +51,13 @@ public class UserAdminController {
             Model model
     ) {
         try {
-            boolean isAdmin = authentication.getAuthorities().stream()
-                    .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
-            if (!isAdmin && role == UserRole.ADMIN) {
-                throw new IllegalArgumentException("Only admins can create another admin user.");
+            boolean isSuperAdmin = isSuperAdmin(authentication);
+            boolean isAdmin = isAdmin(authentication);
+            if (!isAdmin && (role == UserRole.ADMIN || role == UserRole.SUPER_ADMIN)) {
+                throw new IllegalArgumentException("Only admins can create admin users.");
+            }
+            if (!isSuperAdmin && role == UserRole.SUPER_ADMIN) {
+                throw new IllegalArgumentException("Only the super admin can create another super admin user.");
             }
             var created = userManagementService.createUser(username, email, role);
             String subject = "Tumba College — Your portal account has been created";
@@ -76,7 +81,7 @@ public class UserAdminController {
             return "redirect:/admin/users?created=1&mailError=1";
         } catch (IllegalArgumentException ex) {
             model.addAttribute("error", ex.getMessage());
-            model.addAttribute("roles", Arrays.asList(UserRole.values()));
+            model.addAttribute("roles", availableRoles(authentication));
             model.addAttribute("username", username);
             model.addAttribute("email", email);
             model.addAttribute("selectedRole", role);
@@ -85,7 +90,8 @@ public class UserAdminController {
     }
 
     @PostMapping("/admin/users/{id}/role")
-    public String updateRole(@PathVariable("id") Long id, @RequestParam("role") UserRole role) {
+    public String updateRole(@PathVariable("id") Long id, @RequestParam("role") UserRole role, Authentication authentication) {
+        assertRoleAllowed(role, authentication);
         userManagementService.updateUserRole(id, role);
         return "redirect:/admin/users?updated=1";
     }
@@ -97,9 +103,9 @@ public class UserAdminController {
     }
 
     @GetMapping("/admin/users/{id}/edit")
-    public String editUserForm(@PathVariable("id") Long id, Model model) {
+    public String editUserForm(@PathVariable("id") Long id, Authentication authentication, Model model) {
         var user = userManagementService.getUser(id);
-        model.addAttribute("roles", Arrays.asList(UserRole.values()));
+        model.addAttribute("roles", availableRoles(authentication));
         model.addAttribute("userId", user.getId());
         model.addAttribute("username", user.getUsername());
         model.addAttribute("email", user.getEmail());
@@ -115,13 +121,15 @@ public class UserAdminController {
             @RequestParam("email") String email,
             @RequestParam("role") UserRole role,
             @RequestParam(value = "newPassword", required = false) String newPassword,
+            Authentication authentication,
             Model model
     ) {
         try {
+            assertRoleAllowed(role, authentication);
             userManagementService.updateUser(id, username, email, role, newPassword);
             return "redirect:/admin/users?updated=1";
         } catch (IllegalArgumentException ex) {
-            model.addAttribute("roles", Arrays.asList(UserRole.values()));
+            model.addAttribute("roles", availableRoles(authentication));
             model.addAttribute("userId", id);
             model.addAttribute("username", username);
             model.addAttribute("email", email);
@@ -186,5 +194,31 @@ public class UserAdminController {
             model.addAttribute("error", ex.getMessage());
             return "reset-password";
         }
+    }
+
+    private List<UserRole> availableRoles(Authentication authentication) {
+        if (isSuperAdmin(authentication)) {
+            return Arrays.asList(UserRole.values());
+        }
+        return Arrays.stream(UserRole.values())
+                .filter(role -> role != UserRole.SUPER_ADMIN)
+                .toList();
+    }
+
+    private void assertRoleAllowed(UserRole role, Authentication authentication) {
+        if (role == UserRole.SUPER_ADMIN && !isSuperAdmin(authentication)) {
+            throw new IllegalArgumentException("Only the super admin can assign the super admin role.");
+        }
+    }
+
+    private boolean isSuperAdmin(Authentication authentication) {
+        return authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_SUPER_ADMIN".equals(a.getAuthority()));
+    }
+
+    private boolean isAdmin(Authentication authentication) {
+        return authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority())
+                        || "ROLE_SUPER_ADMIN".equals(a.getAuthority()));
     }
 }
