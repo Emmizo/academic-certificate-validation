@@ -32,6 +32,11 @@ public class AdminGlobalModelAttributes {
         if (!isAdminOrSigner) {
             return 0L;
         }
+        boolean isPrincipal = auth.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_PRINCIPAL".equals(a.getAuthority()));
+        if (isPrincipal) {
+            return certificateRepository.countByApprovalStatusAndSubmittedForApprovalTrue(CertificateApprovalStatus.PENDING_APPROVAL);
+        }
         return certificateRepository.countByApprovalStatus(CertificateApprovalStatus.PENDING_APPROVAL);
     }
 }

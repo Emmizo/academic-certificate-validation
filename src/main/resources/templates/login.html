@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org"
-      th:replace="layout :: layout(~{::title}, ~{::main})">
+      th:replace="~{layout :: layout(~{::title}, ~{::main})}">
 <head>
     <title>Tumba College — Staff Login</title>
 </head>
@@ -13,12 +13,17 @@
                 Authorized Tumba College staff can sign in to manage keys and academic certificates.
             </p>
 
-            <div class="mt-4" th:if="${param.error}">
-                <div class="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
-                    Invalid username or password.
-                </div>
-            </div>
-            <div class="mt-4" th:if="${param.resetSuccess}">
+	            <div class="mt-4" th:if="${param.error}">
+	                <div class="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+	                    Invalid username or password.
+	                </div>
+	            </div>
+	            <div class="mt-4" th:if="${param.disabled}">
+	                <div class="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+	                    This account is inactive. Ask an admin to reactivate it before signing in.
+	                </div>
+	            </div>
+	            <div class="mt-4" th:if="${param.resetSuccess}">
                 <div class="rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-800">
                     Password reset successful. Please sign in.
                 </div>

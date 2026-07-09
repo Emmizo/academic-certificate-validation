@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org"
-      th:replace="admin-layout :: adminLayout(~{::title}, ~{::main})">
+      th:replace="~{admin-layout :: adminLayout(~{::title}, ~{::main})}">
 <head>
     <title>Users | Tumba College Admin</title>
 </head>
@@ -23,9 +23,29 @@
         <div th:if="${param.mailError}" class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
             User was created, but the email could not be sent. Configure SMTP and try again.
         </div>
-        <div th:if="${param.updated}" class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">
-            User updated.
-        </div>
+	        <div th:if="${param.updated}" class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">
+	            User updated.
+	        </div>
+	        <div th:if="${param.statusUpdated != null and param.statusUpdated[0] == 'inactive'}"
+	             class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+	            User set inactive. They cannot sign in until an admin activates the account again.
+	        </div>
+	        <div th:if="${param.statusUpdated != null and param.statusUpdated[0] == 'active'}"
+	             class="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+	            User activated. They can sign in again.
+	        </div>
+	        <div th:if="${param.statusMailError}"
+	             class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+	            Account status changed, but the notification email could not be sent. Check SMTP settings or the user's email address.
+	        </div>
+	        <div th:if="${param.statusError != null and param.statusError[0] == 'self'}"
+	             class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+	            You cannot set your own account inactive while signed in.
+	        </div>
+	        <div th:if="${param.statusError != null and param.statusError[0] == 'superAdmin'}"
+	             class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+	            Only the super admin can change the super admin account status.
+	        </div>
 
         <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
             <div class="overflow-x-auto">
@@ -50,15 +70,20 @@
                         </span>
                     </td>
                     <td class="px-6 py-4">
-                        <!-- Toggle button triggers confirmation modal -->
-                        <button type="button"
-                                th:text="${user.enabled} ? 'Active' : 'Inactive'"
-                                th:classappend="${user.enabled} ? ' bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : ' bg-slate-100 text-slate-500 hover:bg-slate-200'"
-                                th:data-user-id="${user.id}"
+	                        <button th:if="${user.username != currentUsername}" type="button"
+	                                th:text="${user.enabled ? 'Active' : 'Inactive'}"
+	                                th:classappend="${user.enabled ? ' bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : ' bg-slate-100 text-slate-500 hover:bg-slate-200'}"
+	                                th:data-user-id="${user.id}"
                                 th:data-username="${user.username}"
-                                th:data-enabled="${user.enabled}"
-                                class="toggle-status-btn inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold transition-colors cursor-pointer">
-                        </button>
+	                                th:data-enabled="${user.enabled}"
+	                                class="toggle-status-btn inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold transition-colors cursor-pointer">
+	                        </button>
+	                        <span th:if="${user.username == currentUsername}"
+	                              th:text="${user.enabled ? 'Active' : 'Inactive'}"
+	                              th:classappend="${user.enabled ? ' bg-emerald-100 text-emerald-700' : ' bg-slate-100 text-slate-500'}"
+	                              class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold">
+	                        </span>
+	                        <div th:if="${user.username == currentUsername}" class="mt-1 text-[11px] text-slate-500">Current account</div>
                     </td>
                     <td class="px-6 py-4">
                         <div class="flex flex-wrap items-center gap-2">
@@ -66,6 +91,14 @@
                            class="rounded-md px-2 py-1 text-sm font-semibold text-[#164655] hover:bg-slate-100 hover:text-[#0f303a]">
                             Edit
                         </a>
+                        <button th:if="${user.username != currentUsername}" type="button"
+                                th:text="${user.enabled ? 'Deactivate' : 'Activate'}"
+                                th:classappend="${user.enabled ? ' border-red-200 text-red-700 hover:bg-red-50' : ' border-emerald-200 text-emerald-700 hover:bg-emerald-50'}"
+                                th:data-user-id="${user.id}"
+                                th:data-username="${user.username}"
+                                th:data-enabled="${user.enabled}"
+                                class="toggle-status-btn rounded-md border bg-white px-2 py-1 text-xs font-semibold">
+                        </button>
                         <form th:if="${canImpersonate and user.enabled}"
                               th:action="@{/admin/users/{id}/impersonate(id=${user.id})}"
                               method="post"

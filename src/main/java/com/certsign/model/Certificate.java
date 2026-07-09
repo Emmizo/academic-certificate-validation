@@ -107,6 +107,10 @@ public class Certificate {
     @Column(name = "rejection_reason", columnDefinition = "TEXT")
     private String rejectionReason;
 
+    @Column(name = "submitted_for_approval", nullable = false)
+    @Builder.Default
+    private boolean submittedForApproval = false;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = true)
     @JoinColumn(name = "sent_by")
     private User sentBy;
@@ -131,4 +135,3 @@ public class Certificate {
         }
     }
 }
-

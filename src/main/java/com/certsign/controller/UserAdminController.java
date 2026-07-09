@@ -33,6 +33,7 @@ public class UserAdminController {
         model.addAttribute("users", userManagementService.listUsers());
         model.addAttribute("roles", availableRoles(authentication));
         model.addAttribute("canImpersonate", isSuperAdmin(authentication));
+        model.addAttribute("currentUsername", authentication.getName());
         return "admin/users";
     }
 
@@ -97,9 +98,20 @@ public class UserAdminController {
     }
 
     @PostMapping("/admin/users/{id}/enabled")
-    public String setEnabled(@PathVariable("id") Long id, @RequestParam("enabled") boolean enabled) {
+    public String setEnabled(@PathVariable("id") Long id,
+                             @RequestParam("enabled") boolean enabled,
+                             Authentication authentication) {
+        var target = userManagementService.getUser(id);
+        if (!enabled && target.getUsername().equals(authentication.getName())) {
+            return "redirect:/admin/users?statusError=self";
+        }
+        if (target.getRole() == UserRole.SUPER_ADMIN && !isSuperAdmin(authentication)) {
+            return "redirect:/admin/users?statusError=superAdmin";
+        }
         userManagementService.setEnabled(id, enabled);
-        return "redirect:/admin/users?updated=1";
+        boolean mailSent = sendStatusChangeEmail(target.getEmail(), target.getUsername(), enabled);
+        return "redirect:/admin/users?statusUpdated=" + (enabled ? "active" : "inactive")
+                + (mailSent ? "" : "&statusMailError=1");
     }
 
     @GetMapping("/admin/users/{id}/edit")
@@ -220,5 +232,36 @@ public class UserAdminController {
         return authentication != null && authentication.getAuthorities().stream()
                 .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority())
                         || "ROLE_SUPER_ADMIN".equals(a.getAuthority()));
+    }
+
+    private boolean sendStatusChangeEmail(String email, String username, boolean enabled) {
+        if (email == null || email.trim().isEmpty()) {
+            return false;
+        }
+        String subject = enabled
+                ? "Tumba College — Your portal account has been activated"
+                : "Tumba College — Your portal account has been deactivated";
+        String body = enabled
+                ? """
+                Hello %s,
+
+                Your Tumba College certificate portal account has been activated.
+                You can now log in again.
+
+                Login: %s/login
+
+                Regards,
+                Tumba College IT Staff
+                """.formatted(username, appBaseUrl)
+                : """
+                Hello %s,
+
+                Your Tumba College certificate portal account has been set inactive.
+                You are no longer able to log in unless an administrator activates the account again.
+
+                Regards,
+                Tumba College IT Staff
+                """.formatted(username);
+        return mailService.send(email, subject, body);
     }
 }

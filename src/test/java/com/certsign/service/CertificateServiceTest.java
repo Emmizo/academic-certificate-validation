@@ -1,6 +1,7 @@
 package com.certsign.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -122,6 +123,42 @@ class CertificateServiceTest {
         assertThat(issued.getApprovalStatus()).isEqualTo(CertificateApprovalStatus.PENDING_APPROVAL);
         assertThat(issued.getKeyPair()).isEqualTo(kp);
         assertThat(issued.getStudent()).isEqualTo(student);
+        assertThat(issued.getInstitution()).isEqualTo(CertificateService.DEFAULT_INSTITUTION);
+        assertThat(issued.isSubmittedForApproval()).isFalse();
+    }
+
+    @Test
+    void issueCertificate_shouldRejectInactiveStudent() {
+        var keyMap = cryptoService.generateRSAKeyPair();
+        KeyPair kp = KeyPair.builder()
+                .id(1L)
+                .publicKey(keyMap.get("publicKey"))
+                .privateKeyEncrypted(keyMap.get("privateKey"))
+                .createdAt(LocalDateTime.now())
+                .active(true)
+                .build();
+
+        Student inactiveStudent = Student.builder()
+                .id(11L)
+                .studentNumber("STU-INACTIVE")
+                .fullName("Inactive Student")
+                .status(StudentStatus.INACTIVE)
+                .build();
+
+        CertificateRequest req = new CertificateRequest();
+        req.setStudentRefId(inactiveStudent.getId());
+        req.setDegree("BSc Computer Science");
+        req.setInstitution("CertSign University");
+        req.setIssueDate(LocalDate.now());
+
+        when(keyPairRepository.findFirstByActiveTrueOrderByCreatedAtDesc())
+                .thenReturn(Optional.of(kp));
+        when(studentRepository.findById(inactiveStudent.getId()))
+                .thenReturn(Optional.of(inactiveStudent));
+
+        assertThatThrownBy(() -> certificateService.issueCertificate(req, User.builder().id(5L).username("admin").build()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Selected student is not active");
     }
 
     @Test
@@ -146,6 +183,7 @@ class CertificateServiceTest {
                 .keyPair(kp)
                 .issuedBy(User.builder().id(5L).username("admin").build())
                 .approvalStatus(CertificateApprovalStatus.PENDING_APPROVAL)
+                .submittedForApproval(true)
                 .digitalSignature("")
                 .createdAt(LocalDateTime.now())
                 .build();
@@ -169,6 +207,63 @@ class CertificateServiceTest {
                 approved.getDigitalSignature(),
                 kp.getPublicKey()
         )).isTrue();
+    }
+
+    @Test
+    void approveCertificate_shouldRejectCertificateThatIsNotPending() {
+        Certificate cert = Certificate.builder()
+                .id(52L)
+                .certificateId("CERT-APPROVED")
+                .studentName("Approved Student")
+                .studentId("STU-APPROVED")
+                .degree("BSc Computer Science")
+                .institution("CertSign University")
+                .issueDate(LocalDate.now())
+                .keyPair(KeyPair.builder().id(1L).build())
+                .issuedBy(User.builder().id(5L).username("admin").build())
+                .approvalStatus(CertificateApprovalStatus.APPROVED)
+                .digitalSignature("already-signed")
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        when(certificateRepository.findById(cert.getId()))
+                .thenReturn(Optional.of(cert));
+
+        assertThatThrownBy(() -> certificateService.approveCertificate(
+                cert.getId(),
+                User.builder().id(6L).username("principal").build()
+        ))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Only certificate drafts pending Principal approval can be signed");
+    }
+
+    @Test
+    void approveCertificate_shouldRejectDraftThatWasNotSentToPrincipal() {
+        Certificate cert = Certificate.builder()
+                .id(53L)
+                .certificateId("CERT-UNSUBMITTED")
+                .studentName("Draft Student")
+                .studentId("STU-DRAFT")
+                .degree("BSc Computer Science")
+                .institution("CertSign University")
+                .issueDate(LocalDate.now())
+                .keyPair(KeyPair.builder().id(1L).build())
+                .issuedBy(User.builder().id(5L).username("admin").build())
+                .approvalStatus(CertificateApprovalStatus.PENDING_APPROVAL)
+                .submittedForApproval(false)
+                .digitalSignature("")
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        when(certificateRepository.findById(cert.getId()))
+                .thenReturn(Optional.of(cert));
+
+        assertThatThrownBy(() -> certificateService.approveCertificate(
+                cert.getId(),
+                User.builder().id(6L).username("principal").build()
+        ))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Certificate draft must be sent to Principal before signing");
     }
 
     @Test
@@ -364,10 +459,11 @@ class CertificateServiceTest {
 
         // Assert: hash is regenerated, signature is cleared until Principal approval
         assertThat(updated.getDegree()).isEqualTo("New Degree");
-        assertThat(updated.getInstitution()).isEqualTo("New Institution");
+        assertThat(updated.getInstitution()).isEqualTo(CertificateService.DEFAULT_INSTITUTION);
         assertThat(updated.getDocumentHash()).isNotEqualTo(hash);
         assertThat(updated.getDigitalSignature()).isEmpty();
         assertThat(updated.getApprovalStatus()).isEqualTo(CertificateApprovalStatus.PENDING_APPROVAL);
+        assertThat(updated.isSubmittedForApproval()).isFalse();
         assertThat(updated.getApprovedBy()).isNull();
         assertThat(updated.getApprovedAt()).isNull();
     }

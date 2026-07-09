@@ -6,6 +6,7 @@ package com.certsign.repository;
 
 import com.certsign.model.Certificate;
 import com.certsign.model.CertificateApprovalStatus;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -27,14 +28,30 @@ public interface CertificateRepository extends JpaRepository<Certificate, Long> 
 
     List<Certificate> findAllByOrderByCreatedAtDesc();
 
+    @Query("""
+            SELECT c FROM Certificate c
+            ORDER BY
+                CASE
+                    WHEN c.approvalStatus = com.certsign.model.CertificateApprovalStatus.PENDING_APPROVAL THEN 0
+                    WHEN c.approvalStatus = com.certsign.model.CertificateApprovalStatus.APPROVED THEN 1
+                    ELSE 2
+                END,
+                c.issueDate ASC,
+                c.createdAt ASC
+            """)
+    List<Certificate> findAllForApprovalQueue();
+
     List<Certificate> findTop3ByOrderByCreatedAtDesc();
 
     Optional<Certificate> findFirstByOrderByCreatedAtDesc();
 
     long countByApprovalStatus(CertificateApprovalStatus approvalStatus);
 
+    long countByApprovalStatusAndSubmittedForApprovalTrue(CertificateApprovalStatus approvalStatus);
+
     long countByStudent_Id(Long studentId);
 
     List<Certificate> findByStudent_IdOrderByCreatedAtDesc(Long studentId);
-}
 
+    List<Certificate> findByCreatedAtBetweenOrderByCreatedAtDesc(LocalDateTime start, LocalDateTime end);
+}

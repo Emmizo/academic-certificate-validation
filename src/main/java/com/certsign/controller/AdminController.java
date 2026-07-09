@@ -100,6 +100,14 @@ public class AdminController {
         var activeKey = keyPairRepository.findFirstByActiveTrueOrderByCreatedAtDesc();
         var lastCert = certificateRepository.findFirstByOrderByCreatedAtDesc();
         var users = userRepository.findAll();
+        boolean isSuperAdmin = hasRole(auth, "ROLE_SUPER_ADMIN");
+        boolean isAdmin = hasRole(auth, "ROLE_ADMIN");
+        boolean isPrincipal = hasRole(auth, "ROLE_PRINCIPAL");
+        boolean isSecretary = hasRole(auth, "ROLE_SECRETARY");
+        boolean isSigner = hasRole(auth, "ROLE_SIGNER");
+        boolean isUserManager = hasRole(auth, "ROLE_USER_MANAGER");
+        boolean canManageUsers = isSuperAdmin || isAdmin || isUserManager;
+        boolean showAdminDashboard = isSuperAdmin || isAdmin;
 
         // Build simple 7-day issuance trend for chart + stat
         LocalDate today = LocalDate.now();
@@ -117,6 +125,24 @@ public class AdminController {
         }
 
         long certsLast7Days = chartValues.stream().mapToLong(Long::longValue).sum();
+        long approvedCertificates = allCerts.stream()
+                .filter(c -> c.getApprovalStatus() == null || c.getApprovalStatus() == CertificateApprovalStatus.APPROVED)
+                .count();
+        long pendingApprovalCertificates = allCerts.stream()
+                .filter(c -> c.getApprovalStatus() == CertificateApprovalStatus.PENDING_APPROVAL)
+                .filter(c -> !isPrincipal || c.isSubmittedForApproval())
+                .count();
+        long rejectedCertificates = allCerts.stream()
+                .filter(c -> c.getApprovalStatus() == CertificateApprovalStatus.REJECTED)
+                .count();
+        List<String> approvalStatusLabels = List.of("Approved", "Not approved", "Draft pending");
+        List<Long> approvalStatusValues = List.of(approvedCertificates, rejectedCertificates, pendingApprovalCertificates);
+        long approvalStatusMax = approvalStatusValues.stream().mapToLong(Long::longValue).max().orElse(0L);
+        List<Map<String, Object>> approvalStatusBars = List.of(
+                chartEntry("Approved", approvedCertificates, approvalStatusMax, "bg-emerald-600", "text-emerald-700"),
+                chartEntry("Not approved", rejectedCertificates, approvalStatusMax, "bg-red-600", "text-red-700"),
+                chartEntry("Draft pending", pendingApprovalCertificates, approvalStatusMax, "bg-amber-500", "text-amber-700")
+        );
         List<String> roleLabels = new ArrayList<>();
         List<Long> roleValues = new ArrayList<>();
         for (UserRole role : UserRole.values()) {
@@ -128,12 +154,29 @@ public class AdminController {
                 roleValues.add(countForRole);
             }
         }
+        long roleMax = roleValues.stream().mapToLong(Long::longValue).max().orElse(0L);
+        List<Map<String, Object>> roleBars = new ArrayList<>();
+        for (int i = 0; i < roleLabels.size(); i++) {
+            roleBars.add(chartEntry(roleLabels.get(i), roleValues.get(i), roleMax, "bg-[#164655]", "text-[#164655]"));
+        }
+        long issuanceMax = chartValues.stream().mapToLong(Long::longValue).max().orElse(0L);
+        List<Map<String, Object>> issuanceBars = new ArrayList<>();
+        for (int i = 0; i < chartLabels.size(); i++) {
+            issuanceBars.add(chartEntry(chartLabels.get(i), chartValues.get(i), issuanceMax, "bg-[#164655]", "text-[#164655]"));
+        }
         long activeUsers = users.stream().filter(User::isEnabled).count();
         long inactiveUsers = users.size() - activeUsers;
-        boolean canImpersonate = auth.getAuthorities().stream()
-                .anyMatch(a -> "ROLE_SUPER_ADMIN".equals(a.getAuthority()));
+        boolean canImpersonate = isSuperAdmin;
 
         model.addAttribute("username", auth.getName());
+        model.addAttribute("isSuperAdmin", isSuperAdmin);
+        model.addAttribute("isAdmin", isAdmin);
+        model.addAttribute("isPrincipal", isPrincipal);
+        model.addAttribute("isSecretary", isSecretary);
+        model.addAttribute("isSigner", isSigner);
+        model.addAttribute("isUserManager", isUserManager);
+        model.addAttribute("canManageUsers", canManageUsers);
+        model.addAttribute("showAdminDashboard", showAdminDashboard);
         model.addAttribute("totalCerts", totalCerts);
         model.addAttribute("activeKeyPresent", activeKey.isPresent());
         model.addAttribute("activeKeyCreatedAt", activeKey.map(KeyPair::getCreatedAt).orElse(null));
@@ -149,7 +192,30 @@ public class AdminController {
         model.addAttribute("chartLabels", chartLabels);
         model.addAttribute("chartValues", chartValues);
         model.addAttribute("certsLast7Days", certsLast7Days);
+        model.addAttribute("approvedCertificates", approvedCertificates);
+        model.addAttribute("pendingApprovalCertificates", pendingApprovalCertificates);
+        model.addAttribute("rejectedCertificates", rejectedCertificates);
+        model.addAttribute("approvalStatusLabels", approvalStatusLabels);
+        model.addAttribute("approvalStatusValues", approvalStatusValues);
+        model.addAttribute("approvalStatusBars", approvalStatusBars);
+        model.addAttribute("roleBars", roleBars);
+        model.addAttribute("issuanceBars", issuanceBars);
         return "admin/dashboard";
+    }
+
+    private boolean hasRole(Authentication auth, String role) {
+        return auth != null && auth.getAuthorities().stream()
+                .anyMatch(authority -> role.equals(authority.getAuthority()));
+    }
+
+    private Map<String, Object> chartEntry(String label, long value, long max, String barClass, String valueClass) {
+        Map<String, Object> entry = new HashMap<>();
+        entry.put("label", label);
+        entry.put("value", value);
+        entry.put("percent", max == 0 ? 0 : Math.max(4, Math.round((value * 100.0f) / max)));
+        entry.put("barClass", barClass);
+        entry.put("valueClass", valueClass);
+        return entry;
     }
 
     /**
@@ -186,11 +252,20 @@ public class AdminController {
     }
 
     /**
-     * Lists all issued certificates in reverse chronological order.
+     * Lists all issued certificates with pending approval drafts first.
      */
     @GetMapping("/admin/certificates")
-    public String certificates(Model model) {
-        var certificates = certificateRepository.findAllByOrderByCreatedAtDesc();
+    public String certificates(@RequestParam(value = "tab", defaultValue = "waiting") String tab,
+                               Authentication auth,
+                               Model model) {
+        var allCertificates = certificateRepository.findAllForApprovalQueue();
+        boolean principalView = hasRole(auth, "ROLE_PRINCIPAL")
+                && !hasRole(auth, "ROLE_SUPER_ADMIN")
+                && !hasRole(auth, "ROLE_ADMIN");
+        String activeTab = normalizeCertificateTab(tab);
+        var certificates = allCertificates.stream()
+                .filter(cert -> certificateBelongsToTab(cert, activeTab, principalView))
+                .toList();
         Map<Long, String> validityById = new HashMap<>();
         for (var cert : certificates) {
             if (cert.getApprovalStatus() == CertificateApprovalStatus.PENDING_APPROVAL) {
@@ -201,6 +276,20 @@ public class AdminController {
         }
         model.addAttribute("certificates", certificates);
         model.addAttribute("validityById", validityById);
+        model.addAttribute("activeTab", activeTab);
+        model.addAttribute("waitingCount", allCertificates.stream()
+                .filter(cert -> cert.getApprovalStatus() == CertificateApprovalStatus.PENDING_APPROVAL)
+                .filter(cert -> !principalView || cert.isSubmittedForApproval())
+                .count());
+        model.addAttribute("readyCount", allCertificates.stream()
+                .filter(cert -> cert.getApprovalStatus() == CertificateApprovalStatus.APPROVED && cert.getSentAt() == null)
+                .count());
+        model.addAttribute("sentCount", allCertificates.stream()
+                .filter(cert -> cert.getSentAt() != null)
+                .count());
+        model.addAttribute("allCount", allCertificates.stream()
+                .filter(cert -> certificateBelongsToTab(cert, "all", principalView))
+                .count());
         return "admin/certificates";
     }
 
@@ -212,6 +301,7 @@ public class AdminController {
     public String issueForm(Model model) {
         CertificateRequest req = new CertificateRequest();
         req.setIssueDate(LocalDate.now());
+        req.setInstitution(CertificateService.DEFAULT_INSTITUTION);
         model.addAttribute("certificateRequest", req);
         model.addAttribute("error", null);
         model.addAttribute("students", loadActiveStudents());
@@ -232,6 +322,7 @@ public class AdminController {
             Authentication auth,
             Model model
     ) {
+        certificateRequest.setInstitution(CertificateService.DEFAULT_INSTITUTION);
         String err = validate(certificateRequest);
         if (err != null) {
             model.addAttribute("certificateRequest", certificateRequest);
@@ -249,7 +340,7 @@ public class AdminController {
         try {
             var saved = certificateService.issueCertificate(certificateRequest, issuer);
             return "redirect:/admin/certificates/" + saved.getId() + "?drafted=1";
-        } catch (IllegalStateException ex) {
+        } catch (IllegalArgumentException | IllegalStateException ex) {
             model.addAttribute("certificateRequest", certificateRequest);
             model.addAttribute("error", ex.getMessage());
             model.addAttribute("students", loadActiveStudents());
@@ -287,7 +378,7 @@ public class AdminController {
             req.setStudentRefId(cert.getStudent().getId());
         }
         req.setDegree(cert.getDegree());
-        req.setInstitution(cert.getInstitution());
+        req.setInstitution(CertificateService.DEFAULT_INSTITUTION);
         req.setIssueDate(cert.getIssueDate());
 
         model.addAttribute("certificate", cert);
@@ -308,6 +399,7 @@ public class AdminController {
             @ModelAttribute CertificateRequest certificateRequest,
             Model model
     ) {
+        certificateRequest.setInstitution(CertificateService.DEFAULT_INSTITUTION);
         String err = validate(certificateRequest);
         if (err != null) {
             var cert = certificateRepository.findById(id)
@@ -381,8 +473,15 @@ public class AdminController {
     public String approveCertificate(@PathVariable("id") Long id, Authentication auth) {
         User approver = userRepository.findByUsername(auth.getName())
                 .orElseThrow(() -> new IllegalStateException("Authenticated user not found"));
-        certificateService.approveCertificate(id, approver);
-        return "redirect:/admin/certificates/" + id + "?approved=1";
+        try {
+            certificateService.approveCertificate(id, approver);
+            return "redirect:/admin/certificates/" + id + "?approved=1";
+        } catch (IllegalStateException ex) {
+            if (ex.getMessage() != null && ex.getMessage().contains("sent to Principal")) {
+                return "redirect:/admin/certificates/" + id + "?approveError=notSubmitted";
+            }
+            return "redirect:/admin/certificates/" + id + "?approveError=notPending";
+        }
     }
 
     @PostMapping("/admin/certificates/{id}/reject")
@@ -391,7 +490,12 @@ public class AdminController {
                                     Authentication auth) {
         User rejector = userRepository.findByUsername(auth.getName())
                 .orElseThrow(() -> new IllegalStateException("Authenticated user not found"));
-        var rejected = certificateService.rejectCertificate(id, rejector, reason);
+        Certificate rejected;
+        try {
+            rejected = certificateService.rejectCertificate(id, rejector, reason);
+        } catch (IllegalStateException ex) {
+            return "redirect:/admin/certificates/" + id + "?rejectError=notSubmitted";
+        }
 
         String studentEmail = rejected.getStudent() != null ? rejected.getStudent().getEmail() : null;
         if (studentEmail != null && !studentEmail.trim().isEmpty()) {
@@ -445,9 +549,10 @@ public class AdminController {
 
     @PostMapping("/admin/certificates/bulk-send")
     public String bulkSendToStudents(@RequestParam(value = "certIds", required = false) List<Long> certIds,
+                                     @RequestParam(value = "tab", defaultValue = "ready") String tab,
                                      Authentication auth) {
         if (certIds == null || certIds.isEmpty()) {
-            return "redirect:/admin/certificates?bulkSendError=noneSelected";
+            return "redirect:/admin/certificates?tab=" + normalizeCertificateTab(tab) + "&bulkSendError=noneSelected";
         }
         User sender = userRepository.findByUsername(auth.getName())
                 .orElseThrow(() -> new IllegalStateException("Authenticated user not found"));
@@ -477,7 +582,65 @@ public class AdminController {
                 failed++;
             }
         }
-        return "redirect:/admin/certificates?bulkSent=" + sent + "&bulkSendFailed=" + failed;
+        return "redirect:/admin/certificates?tab=" + normalizeCertificateTab(tab) + "&bulkSent=" + sent + "&bulkSendFailed=" + failed;
+    }
+
+    @PostMapping("/admin/certificates/bulk-notify-principal")
+    public String bulkNotifyPrincipal(@RequestParam(value = "certIds", required = false) List<Long> certIds,
+                                      @RequestParam(value = "tab", defaultValue = "waiting") String tab) {
+        if (certIds == null || certIds.isEmpty()) {
+            return "redirect:/admin/certificates?tab=" + normalizeCertificateTab(tab) + "&bulkNotifyError=noneSelected";
+        }
+
+        List<Certificate> pendingDrafts = certIds.stream()
+                .map(certificateRepository::findById)
+                .filter(java.util.Optional::isPresent)
+                .map(java.util.Optional::get)
+                .filter(cert -> cert.getApprovalStatus() == CertificateApprovalStatus.PENDING_APPROVAL)
+                .toList();
+
+        if (pendingDrafts.isEmpty()) {
+            return "redirect:/admin/certificates?tab=" + normalizeCertificateTab(tab) + "&bulkNotifyError=nonePending";
+        }
+
+        List<User> principals = userRepository.findByRoleAndEnabledTrue(UserRole.PRINCIPAL).stream()
+                .filter(user -> !isBlank(user.getEmail()))
+                .toList();
+        if (principals.isEmpty()) {
+            return "redirect:/admin/certificates?tab=" + normalizeCertificateTab(tab) + "&bulkNotifyError=noPrincipalEmail";
+        }
+
+        String draftLines = pendingDrafts.stream()
+                .map(cert -> "- " + cert.getCertificateId() + " | " + cert.getStudentName() + " | " + cert.getDegree())
+                .reduce("", (current, line) -> current + line + "\n");
+        String subject = "Certificate drafts waiting for Principal approval";
+        String body = """
+                Hello,
+
+                The following certificate draft(s) are waiting for Principal approval:
+
+                %s
+                Please sign in to the certificate portal and open the Waiting approval tab.
+
+                Regards,
+                Tumba College Certificate Portal
+                """.formatted(draftLines);
+
+        int sent = 0;
+        for (User principal : principals) {
+            if (mailService.send(principal.getEmail().trim(), subject, body)) {
+                sent++;
+            }
+        }
+
+        if (sent == 0) {
+            return "redirect:/admin/certificates?tab=" + normalizeCertificateTab(tab) + "&bulkNotifyError=mail";
+        }
+        for (Certificate draft : pendingDrafts) {
+            draft.setSubmittedForApproval(true);
+            certificateRepository.save(draft);
+        }
+        return "redirect:/admin/certificates?tab=" + normalizeCertificateTab(tab) + "&bulkNotified=" + pendingDrafts.size();
     }
 
     @PostMapping("/admin/certificates/{id}/resend-email")
@@ -537,9 +700,10 @@ public class AdminController {
      */
     @PostMapping("/admin/certificates/bulk-approve")
     public String bulkApprove(@RequestParam(value = "certIds", required = false) List<Long> certIds,
+                              @RequestParam(value = "tab", defaultValue = "waiting") String tab,
                               Authentication auth) {
         if (certIds == null || certIds.isEmpty()) {
-            return "redirect:/admin/certificates?bulkError=noneSelected";
+            return "redirect:/admin/certificates?tab=" + normalizeCertificateTab(tab) + "&bulkError=noneSelected";
         }
         User approver = userRepository.findByUsername(auth.getName())
                 .orElseThrow(() -> new IllegalStateException("Authenticated user not found"));
@@ -549,12 +713,12 @@ public class AdminController {
             var certOpt = certificateRepository.findById(id);
             if (certOpt.isEmpty()) continue;
             var cert = certOpt.get();
-            if (cert.getApprovalStatus() == CertificateApprovalStatus.APPROVED) continue;
+            if (cert.getApprovalStatus() != CertificateApprovalStatus.PENDING_APPROVAL || !cert.isSubmittedForApproval()) continue;
 
             certificateService.approveCertificate(id, approver);
             approved++;
         }
-        return "redirect:/admin/certificates?bulkApproved=" + approved;
+        return "redirect:/admin/certificates?tab=ready&bulkApproved=" + approved;
     }
 
     private boolean emailCertificatePdf(com.certsign.model.Certificate cert) {
@@ -634,11 +798,13 @@ public class AdminController {
     private String validate(CertificateRequest r) {
         if (r == null) return "Invalid request";
         if (r.getStudentRefId() == null) return "Please select a student";
+        var student = studentRepository.findById(r.getStudentRefId());
+        if (student.isEmpty()) return "Selected student not found";
+        if (student.get().getStatus() != StudentStatus.ACTIVE) return "Selected student is not active";
         if (isBlank(r.getDegree())) return "Degree/Program is required";
         if (programRepository.findByNameIgnoreCaseAndActiveTrue(r.getDegree().trim()).isEmpty()) {
             return "Please select an active approved program from the list";
         }
-        if (isBlank(r.getInstitution())) return "Institution is required";
         if (r.getIssueDate() == null) return "Issue date is required";
         return null;
     }
@@ -648,6 +814,27 @@ public class AdminController {
      */
     private boolean isBlank(String s) {
         return s == null || s.trim().isEmpty();
+    }
+
+    private String normalizeCertificateTab(String tab) {
+        if ("ready".equalsIgnoreCase(tab) || "sent".equalsIgnoreCase(tab) || "all".equalsIgnoreCase(tab)) {
+            return tab.toLowerCase();
+        }
+        return "waiting";
+    }
+
+    private boolean certificateBelongsToTab(Certificate cert, String tab, boolean principalView) {
+        if ("ready".equals(tab)) {
+            return cert.getApprovalStatus() == CertificateApprovalStatus.APPROVED && cert.getSentAt() == null;
+        }
+        if ("sent".equals(tab)) {
+            return cert.getSentAt() != null;
+        }
+        if ("all".equals(tab)) {
+            return !principalView || cert.getApprovalStatus() != CertificateApprovalStatus.PENDING_APPROVAL || cert.isSubmittedForApproval();
+        }
+        return cert.getApprovalStatus() == CertificateApprovalStatus.PENDING_APPROVAL
+                && (!principalView || cert.isSubmittedForApproval());
     }
 
     /**

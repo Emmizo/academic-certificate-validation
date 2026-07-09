@@ -11,6 +11,7 @@ import com.certsign.model.Certificate;
 import com.certsign.model.KeyPair;
 import com.certsign.model.Program;
 import com.certsign.model.Student;
+import com.certsign.model.StudentStatus;
 import com.certsign.model.User;
 import com.certsign.model.VerificationLog;
 import com.certsign.repository.CertificateRepository;
@@ -26,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class CertificateService {
+    public static final String DEFAULT_INSTITUTION = "Tumba college-RP";
 
     private final CryptoService cryptoService;
     private final CertificateRepository certificateRepository;
@@ -76,6 +78,9 @@ public class CertificateService {
 
         Student student = studentRepository.findById(req.getStudentRefId())
                 .orElseThrow(() -> new IllegalArgumentException("Selected student not found"));
+        if (student.getStatus() != StudentStatus.ACTIVE) {
+            throw new IllegalArgumentException("Selected student is not active");
+        }
 
         Program program = programRepository.findByNameIgnoreCaseAndActiveTrue(req.getDegree().trim())
                 .orElseThrow(() -> new IllegalArgumentException("Selected program not found or inactive"));
@@ -88,11 +93,12 @@ public class CertificateService {
                 .degree(req.getDegree())
                 .program(program)
                 .licenceType(program.getLicenceType())
-                .institution(req.getInstitution())
+                .institution(DEFAULT_INSTITUTION)
                 .issueDate(req.getIssueDate())
                 .keyPair(activeKeyPair)
                 .issuedBy(issuedBy)
                 .approvalStatus(CertificateApprovalStatus.PENDING_APPROVAL)
+                .submittedForApproval(false)
                 .build();
 
         String canonical = cryptoService.buildCanonicalString(cert);
@@ -118,6 +124,9 @@ public class CertificateService {
         if (req.getStudentRefId() != null) {
             Student student = studentRepository.findById(req.getStudentRefId())
                     .orElseThrow(() -> new IllegalArgumentException("Selected student not found"));
+            if (student.getStatus() != StudentStatus.ACTIVE) {
+                throw new IllegalArgumentException("Selected student is not active");
+            }
             cert.setStudent(student);
             cert.setStudentName(student.getFullName());
             cert.setStudentId(student.getStudentNumber());
@@ -131,9 +140,7 @@ public class CertificateService {
                         cert.setLicenceType(program.getLicenceType());
                     });
         }
-        if (req.getInstitution() != null) {
-            cert.setInstitution(req.getInstitution());
-        }
+        cert.setInstitution(DEFAULT_INSTITUTION);
         if (req.getIssueDate() != null) {
             cert.setIssueDate(req.getIssueDate());
         }
@@ -143,6 +150,7 @@ public class CertificateService {
         }
 
         cert.setApprovalStatus(CertificateApprovalStatus.PENDING_APPROVAL);
+        cert.setSubmittedForApproval(false);
         cert.setApprovedBy(null);
         cert.setApprovedAt(null);
         cert.setSentBy(null);
@@ -161,6 +169,13 @@ public class CertificateService {
     public Certificate approveCertificate(Long certificateId, User approver) {
         Certificate cert = certificateRepository.findById(certificateId)
                 .orElseThrow(() -> new IllegalArgumentException("Certificate not found"));
+
+        if (cert.getApprovalStatus() != CertificateApprovalStatus.PENDING_APPROVAL) {
+            throw new IllegalStateException("Only certificate drafts pending Principal approval can be signed");
+        }
+        if (!cert.isSubmittedForApproval()) {
+            throw new IllegalStateException("Certificate draft must be sent to Principal before signing");
+        }
 
         if (cert.getKeyPair() == null) {
             throw new IllegalStateException("Certificate has no associated key pair for signing");
@@ -183,6 +198,9 @@ public class CertificateService {
     public Certificate rejectCertificate(Long certificateId, User rejectedBy, String reason) {
         Certificate cert = certificateRepository.findById(certificateId)
                 .orElseThrow(() -> new IllegalArgumentException("Certificate not found"));
+        if (!cert.isSubmittedForApproval()) {
+            throw new IllegalStateException("Certificate draft must be sent to Principal before rejection");
+        }
         cert.setApprovalStatus(CertificateApprovalStatus.REJECTED);
         cert.setApprovedBy(rejectedBy);
         cert.setApprovedAt(LocalDateTime.now());
