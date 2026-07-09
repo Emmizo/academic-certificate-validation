@@ -10,9 +10,9 @@
         <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
                 <h1 class="text-3xl font-semibold text-slate-900">Reports</h1>
-                <p class="mt-1 text-sm text-slate-600">Certificate generation totals by day, month, or year.</p>
+                <p class="mt-1 text-sm text-slate-600">Certificate generation totals by day or month.</p>
             </div>
-            <a th:href="@{/admin/reports/pdf(mode=${mode},date=${date},month=${month},year=${year})}"
+            <a th:href="@{/admin/reports/pdf(mode=${mode},date=${date},month=${month})}"
                class="inline-flex items-center justify-center rounded-lg bg-[#164655] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0f303a]">
                 Generate PDF
             </a>
@@ -20,14 +20,13 @@
 
         <form th:action="@{/admin/reports}" method="get"
               class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div class="grid grid-cols-1 gap-4 md:grid-cols-5">
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
                 <div>
                     <label for="mode" class="block text-sm font-medium text-slate-700">Report type</label>
                     <select id="mode" name="mode"
                             class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#164655]">
                         <option value="day" th:selected="${mode == 'day'}">Daily</option>
                         <option value="month" th:selected="${mode == 'month'}">Monthly</option>
-                        <option value="year" th:selected="${mode == 'year'}">Yearly</option>
                     </select>
                 </div>
                 <div>
@@ -38,11 +37,6 @@
                 <div>
                     <label for="month" class="block text-sm font-medium text-slate-700">Month</label>
                     <input id="month" name="month" type="month" th:value="${month}"
-                           class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#164655]"/>
-                </div>
-                <div>
-                    <label for="year" class="block text-sm font-medium text-slate-700">Year</label>
-                    <input id="year" name="year" type="number" min="2000" max="2100" th:value="${year}"
                            class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#164655]"/>
                 </div>
                 <div class="flex items-end">
@@ -108,8 +102,9 @@
                         </td>
                         <td class="px-6 py-4 text-slate-700" th:text="${certificate.degree}"></td>
                         <td class="px-6 py-4">
-                            <span th:text="${certificate.approvalStatus}"
-                                  class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700"></span>
+                            <span th:text="${certificate.approvalStatus == null ? 'APPROVED' : #strings.replace(certificate.approvalStatus.name(), '_', ' ')}"
+                                  th:classappend="${certificate.approvalStatus == null or certificate.approvalStatus.name() == 'APPROVED' ? ' border-emerald-200 bg-emerald-50 text-emerald-700' : (certificate.approvalStatus.name() == 'REJECTED' ? ' border-red-200 bg-red-50 text-red-700' : ' border-amber-200 bg-amber-50 text-amber-700')}"
+                                  class="inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold"></span>
                         </td>
                         <td class="px-6 py-4 text-slate-700" th:text="${#temporals.format(certificate.issueDate, 'yyyy-MM-dd')}"></td>
                     </tr>
