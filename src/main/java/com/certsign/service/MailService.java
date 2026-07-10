@@ -1,18 +1,19 @@
 package com.certsign.service;
 
-import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
+import jakarta.mail.internet.MimeMessage;
+
 @Service
 public class MailService {
 
     private final JavaMailSender javaMailSender;
 
-    @Value("${app.mail.from-name:Tumba College}")
+    @Value("${app.mail.from-name:IPRC Tumba College}")
     private String fromName;
 
     @Value("${app.mail.from-address:noreply@tumbacollege.rw}")

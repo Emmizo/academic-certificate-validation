@@ -4,10 +4,17 @@
 // Description: Issues signed certificates and verifies certificate authenticity
 package com.certsign.service;
 
+import java.security.SecureRandom;
+import java.time.LocalDateTime;
+import java.util.Optional;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.certsign.dto.CertificateRequest;
 import com.certsign.dto.VerificationResult;
-import com.certsign.model.CertificateApprovalStatus;
 import com.certsign.model.Certificate;
+import com.certsign.model.CertificateApprovalStatus;
 import com.certsign.model.KeyPair;
 import com.certsign.model.Program;
 import com.certsign.model.Student;
@@ -19,15 +26,10 @@ import com.certsign.repository.KeyPairRepository;
 import com.certsign.repository.ProgramRepository;
 import com.certsign.repository.StudentRepository;
 import com.certsign.repository.VerificationLogRepository;
-import java.security.SecureRandom;
-import java.time.LocalDateTime;
-import java.util.Optional;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class CertificateService {
-    public static final String DEFAULT_INSTITUTION = "Tumba college-RP";
+    public static final String DEFAULT_INSTITUTION = "IPRC Tumba College-RP";
 
     private final CryptoService cryptoService;
     private final CertificateRepository certificateRepository;

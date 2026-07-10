@@ -1,10 +1,8 @@
 package com.certsign.controller;
 
-import com.certsign.model.UserRole;
-import com.certsign.service.MailService;
-import com.certsign.service.UserManagementService;
 import java.util.Arrays;
 import java.util.List;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
@@ -13,6 +11,10 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+
+import com.certsign.model.UserRole;
+import com.certsign.service.MailService;
+import com.certsign.service.UserManagementService;
 
 @Controller
 public class UserAdminController {
@@ -61,11 +63,11 @@ public class UserAdminController {
                 throw new IllegalArgumentException("Only the super admin can create another super admin user.");
             }
             var created = userManagementService.createUser(username, email, role);
-            String subject = "Tumba College — Your portal account has been created";
+            String subject = "IPRC Tumba College — Your portal account has been created";
             String body = """
                     Hello %s,
 
-                    Your account has been created in the Tumba College certificate portal.
+                    Your account has been created in the IPRC Tumba College certificate portal.
                     Username: %s
                     Temporary password: %s
 
@@ -73,7 +75,7 @@ public class UserAdminController {
                     Login: %s/login
 
                     Regards,
-                    Tumba College IT Staff
+                    IPRC Tumba College IT Staff
                     """.formatted(created.user().getUsername(), created.user().getUsername(), created.temporaryPassword(), appBaseUrl);
             boolean sent = mailService.send(created.user().getEmail(), subject, body);
             if (sent) {
@@ -162,7 +164,7 @@ public class UserAdminController {
         if (token != null) {
             String resetLink = appBaseUrl + "/reset-password?token=" + token;
             String body = """
-                    You requested a password reset for your Tumba College portal account.
+                    You requested a password reset for your IPRC Tumba College portal account.
 
                     Reset password link (valid for 1 minute):
                     %s
@@ -170,9 +172,9 @@ public class UserAdminController {
                     If this was not you, please ignore this email.
 
                     Regards,
-                    Tumba College IT Staff
+                    IPRC Tumba College IT Staff
                     """.formatted(resetLink);
-            mailService.send(email, "Tumba College portal — password reset", body);
+            mailService.send(email, "IPRC Tumba College portal — password reset", body);
         }
         return "redirect:/forgot-password?sent=1";
     }
@@ -239,28 +241,28 @@ public class UserAdminController {
             return false;
         }
         String subject = enabled
-                ? "Tumba College — Your portal account has been activated"
-                : "Tumba College — Your portal account has been deactivated";
+                ? "IPRC Tumba College — Your portal account has been activated"
+                : "IPRC Tumba College — Your portal account has been deactivated";
         String body = enabled
                 ? """
                 Hello %s,
 
-                Your Tumba College certificate portal account has been activated.
+                Your IPRC Tumba College certificate portal account has been activated.
                 You can now log in again.
 
                 Login: %s/login
 
                 Regards,
-                Tumba College IT Staff
+                IPRC Tumba College IT Staff
                 """.formatted(username, appBaseUrl)
                 : """
                 Hello %s,
 
-                Your Tumba College certificate portal account has been set inactive.
+                Your IPRC Tumba College certificate portal account has been set inactive.
                 You are no longer able to log in unless an administrator activates the account again.
 
                 Regards,
-                Tumba College IT Staff
+                IPRC Tumba College IT Staff
                 """.formatted(username);
         return mailService.send(email, subject, body);
     }

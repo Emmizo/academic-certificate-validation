@@ -4,34 +4,13 @@
 // Description: Handles protected admin pages for key management and certificate issuance
 package com.certsign.controller;
 
-import com.certsign.dto.CertificateRequest;
-import com.certsign.model.Certificate;
-import com.certsign.model.KeyPair;
-import com.certsign.model.CertificateApprovalStatus;
-import com.certsign.model.Student;
-import com.certsign.model.StudentStatus;
-import com.certsign.model.User;
-import com.certsign.model.UserRole;
-import com.certsign.repository.ProgramRepository;
-import com.certsign.repository.CertificateRepository;
-import com.certsign.repository.KeyPairRepository;
-import com.certsign.repository.StudentRepository;
-import com.certsign.repository.UserRepository;
-import com.certsign.service.CertificatePdfService;
-import com.certsign.service.CertificateService;
-import com.certsign.service.CryptoService;
-import com.certsign.service.MailService;
-import com.certsign.service.UserService;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import java.time.LocalDate;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import org.springframework.http.HttpHeaders;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -47,6 +26,29 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+
+import com.certsign.dto.CertificateRequest;
+import com.certsign.model.Certificate;
+import com.certsign.model.CertificateApprovalStatus;
+import com.certsign.model.KeyPair;
+import com.certsign.model.Student;
+import com.certsign.model.StudentStatus;
+import com.certsign.model.User;
+import com.certsign.model.UserRole;
+import com.certsign.repository.CertificateRepository;
+import com.certsign.repository.KeyPairRepository;
+import com.certsign.repository.ProgramRepository;
+import com.certsign.repository.StudentRepository;
+import com.certsign.repository.UserRepository;
+import com.certsign.service.CertificatePdfService;
+import com.certsign.service.CertificateService;
+import com.certsign.service.CryptoService;
+import com.certsign.service.MailService;
+import com.certsign.service.UserService;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 @Controller
 public class AdminController {
@@ -500,7 +502,7 @@ public class AdminController {
         String studentEmail = rejected.getStudent() != null ? rejected.getStudent().getEmail() : null;
         if (studentEmail != null && !studentEmail.trim().isEmpty()) {
             String studentName = rejected.getStudentName() != null ? rejected.getStudentName() : "Student";
-            String subject = "Update on your Tumba College certificate";
+            String subject = "Update on your IPRC Tumba College certificate";
             String body = """
                     Hello %s,
 
@@ -511,7 +513,7 @@ public class AdminController {
                     Please contact the college administration if you have any questions.
 
                     Regards,
-                    Tumba College
+                    IPRC Tumba College
                     """.formatted(
                     studentName,
                     rejected.getCertificateId(),
@@ -623,7 +625,7 @@ public class AdminController {
                 Please sign in to the certificate portal and open the Waiting approval tab.
 
                 Regards,
-                Tumba College Certificate Portal
+                IPRC Tumba College Certificate Portal
                 """.formatted(draftLines);
 
         int sent = 0;
@@ -739,8 +741,8 @@ public class AdminController {
 
         boolean principalSigned = cert.getApprovalStatus() == CertificateApprovalStatus.APPROVED;
         String subject = principalSigned
-                ? "Your Tumba College certificate — " + studentName
-                : "Your Tumba College certificate (draft) — " + studentName;
+                ? "Your IPRC Tumba College certificate — " + studentName
+                : "Your IPRC Tumba College certificate (draft) — " + studentName;
 
         String body = principalSigned
                 ? """
@@ -756,7 +758,7 @@ public class AdminController {
                 You may verify this certificate online at any time using the Certificate ID.
 
                 Kind regards,
-                Tumba College Administration
+                IPRC Tumba College Administration
                 """.formatted(
                         studentName,
                         studentNumber,
@@ -774,7 +776,7 @@ public class AdminController {
                 The attached PDF is specific to your student record. This certificate is still awaiting the Principal's signature; you will receive an updated copy once it has been signed.
 
                 Kind regards,
-                Tumba College Administration
+                IPRC Tumba College Administration
                 """.formatted(
                         studentName,
                         studentNumber,
