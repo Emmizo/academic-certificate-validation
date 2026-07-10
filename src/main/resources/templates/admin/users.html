@@ -50,9 +50,10 @@
         <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
             <div class="overflow-x-auto">
             <table class="min-w-full text-sm">
-                <thead class="bg-slate-50/95 text-slate-600 backdrop-blur supports-[backdrop-filter]:bg-slate-50/80">
+                 <thead class="bg-slate-50/95 text-slate-600 backdrop-blur supports-[backdrop-filter]:bg-slate-50/80">
                 <tr>
                     <th class="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider">Username</th>
+                    <th class="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider">Full Name</th>
                     <th class="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider">Email</th>
                     <th class="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider">Role</th>
                     <th class="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider">Status</th>
@@ -62,6 +63,7 @@
                 <tbody class="divide-y divide-slate-100 bg-white">
                 <tr th:each="user : ${users}" class="hover:bg-slate-50/70 transition-colors">
                     <td class="px-6 py-4 font-medium text-slate-900" th:text="${user.username}">admin</td>
+                    <td class="px-6 py-4 text-slate-900 font-medium" th:text="${user.fullName}">Admin User</td>
                     <td class="px-6 py-4 text-slate-700" th:text="${user.email}">admin@example.com</td>
                     <td class="px-6 py-4 text-slate-700">
                         <span th:text="${user.role}"

@@ -4,9 +4,8 @@
 <head>
     <title>Verify Certificate Authenticity</title>
 </head>
-<body>
-<main>
-    <section class="bg-[#164655] min-h-[calc(100vh-4rem)] flex items-center">
+<main class="flex-1 flex flex-col">
+    <section class="bg-[#164655] flex-1 flex items-center py-12">
         <div class="max-w-3xl mx-auto w-full px-4 text-center">
             <h1 class="text-2xl sm:text-3xl font-bold text-white">Verify Certificate Authenticity</h1>
             <p class="mt-1 text-sm text-white/80">Enter a Certificate ID to confirm the certificate is valid.</p>
@@ -27,7 +26,8 @@
 
         <div class="mt-10" th:if="${result != null}">
             <div th:if="${result.valid}"
-                 class="rounded-xl border border-emerald-200 bg-emerald-50 p-5">
+                 class="relative rounded-xl border border-emerald-200 bg-emerald-50 p-5 text-left">
+                <a th:href="@{/verify}" class="absolute top-3 right-3 text-emerald-700 hover:text-emerald-950 font-bold text-xl">&times;</a>
                 <div class="flex items-start gap-3">
                     <div class="h-10 w-10 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold">✓</div>
                     <div class="flex-1">
@@ -40,34 +40,35 @@
                 <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <div class="text-xs text-emerald-900/70">Student Name</div>
-                        <div class="font-semibold" th:text="${result.certificate.studentName}"></div>
+                        <div class="font-semibold text-slate-800" th:text="${result.certificate.studentName}"></div>
                     </div>
                     <div>
                         <div class="text-xs text-emerald-900/70">Student ID</div>
-                        <div class="font-semibold" th:text="${result.certificate.studentId}"></div>
+                        <div class="font-semibold text-slate-800" th:text="${result.certificate.studentId}"></div>
                     </div>
                     <div>
-                        <div class="text-xs text-emerald-900/70">Degree</div>
-                        <div class="font-semibold" th:text="${result.certificate.degree}"></div>
+                        <div class="text-xs text-emerald-900/70">Program</div>
+                        <div class="font-semibold text-slate-800" th:text="${result.certificate.degree}"></div>
                     </div>
                     <div>
                         <div class="text-xs text-emerald-900/70">Institution</div>
-                        <div class="font-semibold">IPRC Tumba College-RP</div>
+                        <div class="font-semibold text-slate-800" th:text="${result.certificate.institution}">IPRC Tumba-RP</div>
                     </div>
                     <div>
                         <div class="text-xs text-emerald-900/70">Issue Date</div>
-                        <div class="font-semibold" th:text="${result.certificate.issueDate}"></div>
+                        <div class="font-semibold text-slate-800" th:text="${result.certificate.issueDate}"></div>
                     </div>
                     <div>
                         <div class="text-xs text-emerald-900/70">Certificate ID</div>
-                        <div class="font-mono font-semibold" th:text="${result.certificate.certificateId}"></div>
+                        <div class="font-mono font-semibold text-slate-800" th:text="${result.certificate.certificateId}"></div>
                     </div>
                 </div>
 
             </div>
 
             <div th:if="${!result.valid}"
-                 class="rounded-xl border border-red-200 bg-red-50 p-5">
+                 class="relative rounded-xl border border-red-200 bg-red-50 p-5 text-left">
+                <a th:href="@{/verify}" class="absolute top-3 right-3 text-red-700 hover:text-red-950 font-bold text-xl">&times;</a>
                 <div class="flex items-start gap-3">
                     <div class="h-10 w-10 rounded-full bg-red-600 text-white flex items-center justify-center font-bold">!</div>
                     <div class="flex-1">

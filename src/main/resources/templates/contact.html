@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout(~{::title}, ~{::main})}">
+<head>
+    <title>Contact Us | IPRC Tumba</title>
+</head>
+<main class="flex-1 flex flex-col">
+    <section class="bg-[#164655] flex-1 flex items-center py-12">
+        <div class="max-w-4xl mx-auto w-full px-4 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+            
+            <!-- Left Panel: Info -->
+            <div class="text-white space-y-6">
+                <h1 class="text-3xl sm:text-4xl font-bold tracking-tight">Get in Touch</h1>
+                <p class="text-white/80 text-sm leading-relaxed">
+                    Have questions about the Academic Certificate Digital Signature System? Reach out to IPRC Tumba Administration or IT Support team.
+                </p>
+                
+                <div class="space-y-4 text-sm">
+                    <div class="flex items-center gap-3">
+                        <span class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 text-white font-semibold">📍</span>
+                        <span>Tumba, Rulindo, Northern Province, Rwanda</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 text-white font-semibold">✉️</span>
+                        <a href="mailto:info@iprctumba.ac.rw" class="hover:underline">info@iprctumba.ac.rw</a>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 text-white font-semibold">📞</span>
+                        <span>+250 788 123 456</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Message Card -->
+            <div class="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-lg">
+                <h2 class="text-xl font-bold text-slate-900">Send us a message</h2>
+                <p class="text-xs text-slate-500 mt-1">We'll get back to you as soon as possible.</p>
+
+                <form class="mt-6 space-y-4" action="#" method="get" onsubmit="alert('Thank you for contacting us! This is a mockup form.'); return false;">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600">Full Name</label>
+                        <input type="text" required placeholder="John Doe"
+                               class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#164655] shadow-sm"/>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600">Email Address</label>
+                        <input type="email" required placeholder="john.doe@example.com"
+                               class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#164655] shadow-sm"/>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600">Message</label>
+                        <textarea rows="3" required placeholder="Type your inquiry here..."
+                                  class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#164655] shadow-sm"></textarea>
+                    </div>
+                    <button type="submit"
+                            class="w-full rounded-lg bg-[#164655] px-4 py-2 font-semibold text-white hover:bg-[#0f303a] text-sm shadow">
+                        Send Message
+                    </button>
+                </form>
+            </div>
+            
+        </div>
+    </section>
+</main>
+</body>
+</html>

@@ -6,7 +6,7 @@
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title th:replace="${title}">IPRC Tumba College Admin</title>
+    <title th:replace="${title}">IPRC Tumba Admin</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="min-h-screen bg-slate-50 text-slate-900 flex">
@@ -15,10 +15,10 @@
 <aside class="hidden md:flex md:flex-col w-64 bg-[#164655] text-slate-100">
     <div class="px-5 py-4 flex items-center gap-3 border-b border-[#0f303a]">
         <div class="h-9 w-9 rounded-lg bg-white/10 flex items-center justify-center text-sm font-semibold">
-            TC
+            IT
         </div>
         <div>
-            <div class="text-sm font-semibold tracking-tight">IPRC Tumba College</div>
+            <div class="text-sm font-semibold tracking-tight">IPRC Tumba</div>
             <div class="text-[0.7rem] text-slate-100/70">Certificate Portal</div>
         </div>
     </div>
@@ -111,8 +111,7 @@
 
         <div sec:authorize="!hasAnyRole('SUPER_ADMIN','ADMIN')">
             <div class="px-2 text-[0.7rem] font-semibold uppercase tracking-wide text-slate-200/70">Public</div>
-            <a th:href="@{/verify}"
-               th:classappend="${#httpServletRequest != null and #httpServletRequest.requestURI.startsWith('/verify')} ? ' bg-white text-[#164655]' : ''"
+            <a th:href="@{/verify}" target="_blank"
                class="mt-2 flex items-center gap-2 rounded-lg px-3 py-2 text-slate-100 hover:bg-white/10 transition-colors duration-150">
                 <span class="h-4 w-4 rounded-full border border-white/40 flex items-center justify-center text-[0.55rem]">V</span>
                 <span>Verify Portal</span>
@@ -123,7 +122,7 @@
     <div class="px-4 py-3 border-t border-[#0f303a] text-[0.7rem] text-slate-300/80">
         <div sec:authorize="isAuthenticated()">
             Logged in as
-            <span class="font-semibold text-white" sec:authentication="name">admin</span>
+            <span class="font-semibold text-white" th:text="${currentUserFullName}">admin</span>
         </div>
         <div class="mt-1">
             <a th:href="@{/logout}" class="text-slate-200 hover:text-white">Logout</a>
@@ -136,23 +135,27 @@
     <!-- Top bar -->
     <header class="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-slate-200 bg-white shadow-sm">
         <div class="flex items-center gap-2 text-sm">
-            <span class="hidden sm:inline text-slate-500">IPRC Tumba College Certificate Portal</span>
+            <span class="hidden sm:inline text-slate-500">IPRC Tumba Certificate Portal</span>
         </div>
         <div class="flex items-center gap-3">
-            <a th:href="@{/verify}"
-               class="hidden sm:inline-flex items-center rounded-full border border-[#164655] bg-white px-3 py-1 text-xs font-semibold text-[#164655] hover:bg-[#164655] hover:text-white transition-colors duration-150">
-                Public verification
-            </a>
             <div class="relative">
                 <button id="profile-menu-button" type="button"
                         class="flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-200 transition-colors duration-150">
                     <span class="h-6 w-6 rounded-full bg-[#164655] text-white flex items-center justify-center text-[0.7rem]">
-                        TC
+                        IT
                     </span>
-                    <span sec:authentication="name">admin</span>
+                    <span th:text="${currentUserFullName}">admin</span>
                 </button>
                 <div id="profile-menu"
                      class="hidden absolute right-0 mt-2 w-44 rounded-lg border border-slate-200 bg-white py-1 shadow-lg z-50">
+                    <a th:href="@{/admin/profile}"
+                       class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 border-b border-slate-100">
+                        Profile
+                    </a>
+                    <a th:href="@{/admin/profile}"
+                       class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 border-b border-slate-100">
+                        Change Password
+                    </a>
                     <a th:href="@{/logout}"
                        class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
                         Logout

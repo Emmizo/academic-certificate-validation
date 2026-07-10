@@ -37,7 +37,7 @@ public class UserManagementService {
     }
 
     @Transactional
-    public CreatedUserResult createUser(String username, String email, UserRole role) {
+    public CreatedUserResult createUser(String username, String fullName, String email, UserRole role) {
         if (isBlank(username)) {
             throw new IllegalArgumentException("Username is required.");
         }
@@ -59,6 +59,7 @@ public class UserManagementService {
         String tempPassword = generateTemporaryPassword(12);
         User user = User.builder()
                 .username(normalizedUsername)
+                .fullName(fullName != null ? fullName.trim() : null)
                 .email(normalizedEmail)
                 .passwordHash(passwordEncoder.encode(tempPassword))
                 .role(role)
@@ -87,7 +88,7 @@ public class UserManagementService {
     }
 
     @Transactional
-    public void updateUser(Long userId, String username, String email, UserRole role, String newPassword) {
+    public void updateUser(Long userId, String username, String fullName, String email, UserRole role, String newPassword) {
         if (userId == null) {
             throw new IllegalArgumentException("User not found.");
         }
@@ -118,6 +119,7 @@ public class UserManagementService {
         });
 
         user.setUsername(normalizedUsername);
+        user.setFullName(fullName != null ? fullName.trim() : null);
         user.setEmail(normalizedEmail);
         user.setRole(role);
 

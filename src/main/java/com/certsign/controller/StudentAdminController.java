@@ -9,6 +9,8 @@ import com.certsign.model.Student;
 import com.certsign.model.StudentStatus;
 import com.certsign.repository.CertificateRepository;
 import com.certsign.repository.StudentRepository;
+import com.certsign.repository.ProgramRepository;
+import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
@@ -24,14 +26,17 @@ public class StudentAdminController {
 
     private final StudentRepository studentRepository;
     private final CertificateRepository certificateRepository;
+    private final ProgramRepository programRepository;
 
     /**
      * Creates the student admin controller backed by the given repositories.
      */
     public StudentAdminController(StudentRepository studentRepository,
-                                  CertificateRepository certificateRepository) {
+                                  CertificateRepository certificateRepository,
+                                  ProgramRepository programRepository) {
         this.studentRepository = studentRepository;
         this.certificateRepository = certificateRepository;
+        this.programRepository = programRepository;
     }
 
     /**
@@ -57,7 +62,16 @@ public class StudentAdminController {
      */
     @GetMapping("/admin/students/new")
     public String newStudentForm(Model model) {
-        model.addAttribute("studentRequest", new StudentRequest());
+        StudentRequest request = new StudentRequest();
+        long nextNum = studentRepository.count() + 1;
+        String generatedId;
+        do {
+            generatedId = "TC" + java.time.Year.now().getValue() + String.format("%03d", nextNum++);
+        } while (studentRepository.findByStudentNumber(generatedId).isPresent());
+        request.setStudentNumber(generatedId);
+
+        model.addAttribute("studentRequest", request);
+        model.addAttribute("programs", programRepository.findByActiveTrueOrderByNameAsc());
         model.addAttribute("error", null);
         model.addAttribute("formTitle", "Create Student");
         model.addAttribute("formDescription", "Register a student once, then reuse them when issuing certificates.");
@@ -77,6 +91,13 @@ public class StudentAdminController {
             return buildFormModel(model, studentRequest, err, null);
         }
 
+        if (studentRequest.getDateOfBirth() != null) {
+            LocalDate eighteenYearsAgo = LocalDate.now().minusYears(18);
+            if (studentRequest.getDateOfBirth().isAfter(eighteenYearsAgo)) {
+                return buildFormModel(model, studentRequest, "Student must be at least 18 years old.", null);
+            }
+        }
+
         boolean exists = studentRepository.findByStudentNumber(studentRequest.getStudentNumber()).isPresent();
         if (exists) {
             return buildFormModel(model, studentRequest, "A student with this Student ID already exists.", null);
@@ -88,6 +109,8 @@ public class StudentAdminController {
                 .email(studentRequest.getEmail())
                 .nationalId(studentRequest.getNationalId())
                 .dateOfBirth(studentRequest.getDateOfBirth())
+                .attendedProgram(studentRequest.getAttendedProgram())
+                .academicYear(studentRequest.getAcademicYear())
                 .status(StudentStatus.ACTIVE)
                 .build();
         studentRepository.save(s);
@@ -109,6 +132,8 @@ public class StudentAdminController {
         request.setEmail(student.getEmail());
         request.setNationalId(student.getNationalId());
         request.setDateOfBirth(student.getDateOfBirth());
+        request.setAttendedProgram(student.getAttendedProgram());
+        request.setAcademicYear(student.getAcademicYear());
 
         model.addAttribute("studentCertificates", certificateRepository.findByStudent_IdOrderByCreatedAtDesc(id));
         return buildFormModel(model, request, null, id);
@@ -132,6 +157,14 @@ public class StudentAdminController {
             return buildFormModel(model, studentRequest, err, id);
         }
 
+        if (studentRequest.getDateOfBirth() != null) {
+            LocalDate eighteenYearsAgo = LocalDate.now().minusYears(18);
+            if (studentRequest.getDateOfBirth().isAfter(eighteenYearsAgo)) {
+                model.addAttribute("studentCertificates", certificateRepository.findByStudent_IdOrderByCreatedAtDesc(id));
+                return buildFormModel(model, studentRequest, "Student must be at least 18 years old.", id);
+            }
+        }
+
         var existingByStudentNumber = studentRepository.findByStudentNumber(studentRequest.getStudentNumber());
         if (existingByStudentNumber.isPresent() && !existingByStudentNumber.get().getId().equals(id)) {
             model.addAttribute("studentCertificates", certificateRepository.findByStudent_IdOrderByCreatedAtDesc(id));
@@ -143,6 +176,8 @@ public class StudentAdminController {
         student.setEmail(studentRequest.getEmail());
         student.setNationalId(studentRequest.getNationalId());
         student.setDateOfBirth(studentRequest.getDateOfBirth());
+        student.setAttendedProgram(studentRequest.getAttendedProgram());
+        student.setAcademicYear(studentRequest.getAcademicYear());
         studentRepository.save(student);
 
         return "redirect:/admin/students";
@@ -193,6 +228,7 @@ public class StudentAdminController {
     private String buildFormModel(Model model, StudentRequest studentRequest, String error, Long editId) {
         boolean editMode = editId != null;
         model.addAttribute("studentRequest", studentRequest);
+        model.addAttribute("programs", programRepository.findByActiveTrueOrderByNameAsc());
         model.addAttribute("error", error);
         model.addAttribute("formTitle", editMode ? "Edit Student" : "Create Student");
         model.addAttribute(

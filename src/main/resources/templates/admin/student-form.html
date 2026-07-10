@@ -47,13 +47,30 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-slate-700">National ID (optional)</label>
+                    <label class="block text-sm font-medium text-slate-700">National ID / Passport (optional)</label>
                     <input th:field="*{nationalId}" type="text"
                            class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#164655]"/>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-slate-700">Date of Birth (optional)</label>
                     <input th:field="*{dateOfBirth}" type="date"
+                           th:max="${#temporals.format(#temporals.createNow().minusYears(18), 'yyyy-MM-dd')}"
+                           class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#164655]"/>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700">Attended Program</label>
+                    <select th:field="*{attendedProgram}" required
+                            class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-[#164655]">
+                        <option value="" disabled selected>Select program...</option>
+                        <option th:each="p : ${programs}" th:value="${p.name}" th:text="${p.name}"></option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700">Academic Year</label>
+                    <input th:field="*{academicYear}" type="text" placeholder="e.g. 2025/2026" required
                            class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#164655]"/>
                 </div>
             </div>

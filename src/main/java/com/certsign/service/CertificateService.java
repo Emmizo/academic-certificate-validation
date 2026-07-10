@@ -29,7 +29,7 @@ import com.certsign.repository.VerificationLogRepository;
 
 @Service
 public class CertificateService {
-    public static final String DEFAULT_INSTITUTION = "IPRC Tumba College-RP";
+    public static final String DEFAULT_INSTITUTION = "IPRC Tumba-RP";
 
     private final CryptoService cryptoService;
     private final CertificateRepository certificateRepository;

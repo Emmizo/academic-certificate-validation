@@ -99,8 +99,8 @@ public class CertificatePdfService {
 
         boolean signedByPrincipal = isSignedByPrincipal(certificate);
         String statusText = signedByPrincipal
-                ? "IPRC Tumba College - Digitally signed and verifiable"
-                : "IPRC Tumba College - Draft certificate, pending Principal signature";
+                ? "IPRC Tumba - Digitally signed and verifiable"
+                : "IPRC Tumba - Draft certificate, pending Principal signature";
         Paragraph sub = new Paragraph(statusText, subTitleFont);
         sub.setAlignment(Element.ALIGN_CENTER);
         sub.setSpacingAfter(24f);

@@ -32,6 +32,7 @@ public class SecurityConfig {
                                 "/login",
                                 "/verify",
                                 "/verify/result",
+                                "/contact",
                                 "/forgot-password",
                                 "/reset-password"
                         ).permitAll()

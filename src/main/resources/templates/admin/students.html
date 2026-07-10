@@ -36,7 +36,7 @@
                 <th class="px-6 py-3 text-left text-[11px] font-semibold text-slate-600 uppercase tracking-wider">Student ID</th>
                 <th class="px-6 py-3 text-left text-[11px] font-semibold text-slate-600 uppercase tracking-wider">Full Name</th>
                 <th class="px-6 py-3 text-left text-[11px] font-semibold text-slate-600 uppercase tracking-wider">Email</th>
-                <th class="px-6 py-3 text-left text-[11px] font-semibold text-slate-600 uppercase tracking-wider">Certificates</th>
+                <th class="px-6 py-3 text-left text-[11px] font-semibold text-slate-600 uppercase tracking-wider">Attended Program</th>
                 <th class="px-6 py-3 text-left text-[11px] font-semibold text-slate-600 uppercase tracking-wider">Status</th>
                 <th class="px-6 py-3 text-right text-[11px] font-semibold text-slate-600 uppercase tracking-wider">Actions</th>
             </tr>
@@ -46,9 +46,7 @@
                 <td class="px-6 py-4 font-mono text-sm text-slate-900 whitespace-nowrap" th:text="${s.studentNumber}"></td>
                 <td class="px-6 py-4 text-sm font-medium text-slate-900" th:text="${s.fullName}"></td>
                 <td class="px-6 py-4 text-sm text-slate-700" th:text="${s.email} ?: '—'"></td>
-                <td class="px-6 py-4 text-sm text-slate-700">
-                    <span th:text="${certificateCountByStudentId != null ? certificateCountByStudentId[s.id] : 0}">0</span>
-                </td>
+                <td class="px-6 py-4 text-sm text-slate-700" th:text="${s.attendedProgram} ?: '—'"></td>
                 <td class="px-6 py-4 text-sm">
                     <span th:text="${#strings.capitalize(#strings.toLowerCase(s.status.name()))}"
                           th:classappend="${s.status.name() == 'ACTIVE'} ? ' bg-emerald-50 text-emerald-700 border-emerald-200' : ' bg-red-50 text-red-600 border-red-200'"

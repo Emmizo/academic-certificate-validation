@@ -2,15 +2,15 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org"
       th:replace="~{layout :: layout(~{::title}, ~{::main})}">
 <head>
-    <title>IPRC Tumba College — Staff Login</title>
+    <title>IPRC Tumba — Staff Login</title>
 </head>
 <body>
 <main class="min-h-[calc(100vh-4rem)] bg-[#164655] flex items-center justify-center">
     <div class="w-full max-w-xl px-4">
         <div class="bg-white border border-slate-200 rounded-2xl px-6 py-8 sm:px-10 shadow-sm">
-            <h1 class="text-2xl sm:text-3xl font-semibold text-slate-900">IPRC Tumba College — Staff Login</h1>
+            <h1 class="text-2xl sm:text-3xl font-semibold text-slate-900">IPRC Tumba — Staff Login</h1>
             <p class="mt-1 text-sm text-slate-600">
-                Authorized IPRC Tumba College staff can sign in to manage keys and academic certificates.
+                Authorized IPRC Tumba staff can sign in to manage keys and academic certificates.
             </p>
 
 	            <div class="mt-4" th:if="${param.error}">
@@ -70,15 +70,9 @@
                 </a>
             </p>
 
-            <div class="mt-6 border-t border-slate-200 pt-4 text-center text-xs sm:text-sm text-slate-600 space-y-2">
+            <div class="mt-6 border-t border-slate-200 pt-4 text-center text-xs sm:text-sm text-slate-600">
                 <p>
-                    <span class="font-semibold text-slate-800">Public verification portal:</span>
-                    <a th:href="@{/verify}" class="ml-1 text-[#164655] hover:underline font-semibold">
-                        Open verification
-                    </a>
-                </p>
-                <p>
-                    <a th:href="@{/verify}" class="text-slate-500 hover:text-slate-700 hover:underline">
+                    <a th:href="@{/verify}" class="text-[#164655] hover:underline font-semibold">
                         Back to verification
                     </a>
                 </p>

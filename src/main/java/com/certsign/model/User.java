@@ -46,6 +46,9 @@ public class User {
     @Column(nullable = false, length = 100)
     private String username;
 
+    @Column(name = "full_name", length = 150)
+    private String fullName;
+
     @Column(length = 190)
     private String email;
 

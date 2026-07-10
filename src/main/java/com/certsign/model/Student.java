@@ -53,6 +53,12 @@ public class Student {
     @Column(name = "national_id", length = 100)
     private String nationalId;
 
+    @Column(name = "attended_program", length = 200)
+    private String attendedProgram;
+
+    @Column(name = "academic_year", length = 50)
+    private String academicYear;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private StudentStatus status;

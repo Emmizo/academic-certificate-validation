@@ -17,6 +17,8 @@ public class StudentRequest {
     private String fullName;
     private String email;
     private String nationalId;
+    private String attendedProgram;
+    private String academicYear;
 
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     private LocalDate dateOfBirth;

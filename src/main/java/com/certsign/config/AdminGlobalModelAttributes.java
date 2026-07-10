@@ -1,7 +1,8 @@
 package com.certsign.config;
 
-import com.certsign.model.CertificateApprovalStatus;
 import com.certsign.repository.CertificateRepository;
+import com.certsign.repository.UserRepository;
+import com.certsign.model.CertificateApprovalStatus;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -13,9 +14,22 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 public class AdminGlobalModelAttributes {
 
     private final CertificateRepository certificateRepository;
+    private final UserRepository userRepository;
 
-    public AdminGlobalModelAttributes(CertificateRepository certificateRepository) {
+    public AdminGlobalModelAttributes(CertificateRepository certificateRepository, UserRepository userRepository) {
         this.certificateRepository = certificateRepository;
+        this.userRepository = userRepository;
+    }
+
+    @ModelAttribute("currentUserFullName")
+    public String currentUserFullName() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || auth instanceof AnonymousAuthenticationToken) {
+            return "";
+        }
+        return userRepository.findByUsername(auth.getName())
+                .map(u -> u.getFullName() != null && !u.getFullName().isBlank() ? u.getFullName() : u.getUsername())
+                .orElse(auth.getName());
     }
 
     @ModelAttribute("pendingApprovalCount")

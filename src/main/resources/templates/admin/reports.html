@@ -20,7 +20,7 @@
 
         <form th:action="@{/admin/reports}" method="get"
               class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
                 <div>
                     <label for="mode" class="block text-sm font-medium text-slate-700">Report type</label>
                     <select id="mode" name="mode"
@@ -30,13 +30,8 @@
                     </select>
                 </div>
                 <div>
-                    <label for="date" class="block text-sm font-medium text-slate-700">Day</label>
+                    <label for="date" class="block text-sm font-medium text-slate-700">Select Date</label>
                     <input id="date" name="date" type="date" th:value="${date}"
-                           class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#164655]"/>
-                </div>
-                <div>
-                    <label for="month" class="block text-sm font-medium text-slate-700">Month</label>
-                    <input id="month" name="month" type="month" th:value="${month}"
                            class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#164655]"/>
                 </div>
                 <div class="flex items-end">

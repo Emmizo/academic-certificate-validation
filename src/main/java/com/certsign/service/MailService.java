@@ -12,6 +12,7 @@ import jakarta.mail.internet.MimeMessage;
 public class MailService {
 
     private final JavaMailSender javaMailSender;
+    private final java.util.concurrent.ExecutorService executor = java.util.concurrent.Executors.newCachedThreadPool();
 
     @Value("${app.mail.from-name:IPRC Tumba College}")
     private String fromName;
@@ -38,24 +39,26 @@ public class MailService {
         if (javaMailSender == null) {
             return false;
         }
-        try {
-            MimeMessage mimeMessage = javaMailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
-            helper.setFrom(fromAddress, fromName);
-            helper.setTo(to);
-            helper.setSubject(subject);
-            helper.setText(body);
-            if (attachmentFilename != null && attachmentBytes != null) {
-                helper.addAttachment(
-                        attachmentFilename,
-                        new org.springframework.core.io.ByteArrayResource(attachmentBytes),
-                        contentType
-                );
+        executor.submit(() -> {
+            try {
+                MimeMessage mimeMessage = javaMailSender.createMimeMessage();
+                MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+                helper.setFrom(fromAddress, fromName);
+                helper.setTo(to);
+                helper.setSubject(subject);
+                helper.setText(body);
+                if (attachmentFilename != null && attachmentBytes != null) {
+                    helper.addAttachment(
+                            attachmentFilename,
+                            new org.springframework.core.io.ByteArrayResource(attachmentBytes),
+                            contentType
+                    );
+                }
+                javaMailSender.send(mimeMessage);
+            } catch (Exception ex) {
+                // Log error if necessary
             }
-            javaMailSender.send(mimeMessage);
-            return true;
-        } catch (Exception ex) {
-            return false;
-        }
+        });
+        return true;
     }
 }

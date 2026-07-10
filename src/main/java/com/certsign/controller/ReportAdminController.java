@@ -25,6 +25,14 @@ public class ReportAdminController {
                           @RequestParam(value = "month", required = false) String month,
                           @RequestParam(value = "year", required = false) Integer year,
                           Model model) {
+        if ("month".equalsIgnoreCase(mode) && (month == null || month.isBlank()) && (date != null && !date.isBlank())) {
+            try {
+                java.time.LocalDate parsedDate = java.time.LocalDate.parse(date);
+                month = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM").format(parsedDate);
+            } catch (Exception e) {
+                // Ignore
+            }
+        }
         var report = certificateReportService.buildReport(mode, date, month, year);
         model.addAttribute("report", report);
         model.addAttribute("mode", report.period().mode());
@@ -39,6 +47,14 @@ public class ReportAdminController {
                                             @RequestParam(value = "date", required = false) String date,
                                             @RequestParam(value = "month", required = false) String month,
                                             @RequestParam(value = "year", required = false) Integer year) {
+        if ("month".equalsIgnoreCase(mode) && (month == null || month.isBlank()) && (date != null && !date.isBlank())) {
+            try {
+                java.time.LocalDate parsedDate = java.time.LocalDate.parse(date);
+                month = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM").format(parsedDate);
+            } catch (Exception e) {
+                // Ignore
+            }
+        }
         var report = certificateReportService.buildReport(mode, date, month, year);
         byte[] pdf = certificateReportService.renderReportPdf(report);
         String filename = "certificate-report-" + report.period().mode() + ".pdf";

@@ -48,6 +48,7 @@ public class UserAdminController {
     @PostMapping("/admin/users")
     public String createUser(
             @RequestParam("username") String username,
+            @RequestParam("fullName") String fullName,
             @RequestParam("email") String email,
             @RequestParam("role") UserRole role,
             Authentication authentication,
@@ -62,7 +63,7 @@ public class UserAdminController {
             if (!isSuperAdmin && role == UserRole.SUPER_ADMIN) {
                 throw new IllegalArgumentException("Only the super admin can create another super admin user.");
             }
-            var created = userManagementService.createUser(username, email, role);
+            var created = userManagementService.createUser(username, fullName, email, role);
             String subject = "IPRC Tumba College — Your portal account has been created";
             String body = """
                     Hello %s,
@@ -86,6 +87,7 @@ public class UserAdminController {
             model.addAttribute("error", ex.getMessage());
             model.addAttribute("roles", availableRoles(authentication));
             model.addAttribute("username", username);
+            model.addAttribute("fullName", fullName);
             model.addAttribute("email", email);
             model.addAttribute("selectedRole", role);
             return "admin/user-form";
@@ -122,6 +124,7 @@ public class UserAdminController {
         model.addAttribute("roles", availableRoles(authentication));
         model.addAttribute("userId", user.getId());
         model.addAttribute("username", user.getUsername());
+        model.addAttribute("fullName", user.getFullName());
         model.addAttribute("email", user.getEmail());
         model.addAttribute("selectedRole", user.getRole());
         model.addAttribute("error", null);
@@ -132,6 +135,7 @@ public class UserAdminController {
     public String updateUser(
             @PathVariable("id") Long id,
             @RequestParam("username") String username,
+            @RequestParam("fullName") String fullName,
             @RequestParam("email") String email,
             @RequestParam("role") UserRole role,
             @RequestParam(value = "newPassword", required = false) String newPassword,
@@ -140,12 +144,13 @@ public class UserAdminController {
     ) {
         try {
             assertRoleAllowed(role, authentication);
-            userManagementService.updateUser(id, username, email, role, newPassword);
+            userManagementService.updateUser(id, username, fullName, email, role, newPassword);
             return "redirect:/admin/users?updated=1";
         } catch (IllegalArgumentException ex) {
             model.addAttribute("roles", availableRoles(authentication));
             model.addAttribute("userId", id);
             model.addAttribute("username", username);
+            model.addAttribute("fullName", fullName);
             model.addAttribute("email", email);
             model.addAttribute("selectedRole", role);
             model.addAttribute("error", ex.getMessage());
@@ -211,12 +216,7 @@ public class UserAdminController {
     }
 
     private List<UserRole> availableRoles(Authentication authentication) {
-        if (isSuperAdmin(authentication)) {
-            return Arrays.asList(UserRole.values());
-        }
-        return Arrays.stream(UserRole.values())
-                .filter(role -> role != UserRole.SUPER_ADMIN)
-                .toList();
+        return List.of(UserRole.ADMIN, UserRole.SIGNER, UserRole.VERIFIER);
     }
 
     private void assertRoleAllowed(UserRole role, Authentication authentication) {

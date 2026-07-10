@@ -53,21 +53,22 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private void seedUsers() {
-        record Seed(String username, String email, String password, UserRole role) {}
+        record Seed(String username, String fullName, String email, String password, UserRole role) {}
 
         List<Seed> seeds = List.of(
-            new Seed("superadmin",   "superadmin@tumbacollege.rw", "SuperAdmin@123", UserRole.SUPER_ADMIN),
-            new Seed(adminUsername,  "admin@tumbacollege.rw",     adminPassword,   UserRole.ADMIN),
-            new Seed("principal",    "principal@tumbacollege.rw", "Principal@123", UserRole.PRINCIPAL),
-            new Seed("secretary",    "secretary@tumbacollege.rw", "Secretary@123", UserRole.SECRETARY),
-            new Seed("signer",       "signer@tumbacollege.rw",    "Signer@123",    UserRole.SIGNER),
-            new Seed("verifier",     "verifier@tumbacollege.rw",  "Verifier@123",  UserRole.VERIFIER)
+            new Seed("superadmin",   "Super Admin",        "superadmin@tumbacollege.rw", "SuperAdmin@123", UserRole.SUPER_ADMIN),
+            new Seed(adminUsername,  "System Admin",       "admin@tumbacollege.rw",     adminPassword,   UserRole.ADMIN),
+            new Seed("principal",    "Principal Officer",  "principal@tumbacollege.rw", "Principal@123", UserRole.PRINCIPAL),
+            new Seed("secretary",    "Secretary Officer",  "secretary@tumbacollege.rw", "Secretary@123", UserRole.SECRETARY),
+            new Seed("signer",       "Signer Officer",     "signer@tumbacollege.rw",    "Signer@123",    UserRole.SIGNER),
+            new Seed("verifier",     "Verifier Officer",   "verifier@tumbacollege.rw",  "Verifier@123",  UserRole.VERIFIER)
         );
 
         for (Seed s : seeds) {
             if (userRepository.findByUsername(s.username()).isEmpty()) {
                 userRepository.save(User.builder()
                         .username(s.username())
+                        .fullName(s.fullName())
                         .email(s.email())
                         .passwordHash(passwordEncoder.encode(s.password()))
                         .role(s.role())

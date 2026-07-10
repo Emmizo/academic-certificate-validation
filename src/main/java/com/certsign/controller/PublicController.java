@@ -56,6 +56,11 @@ public class PublicController {
         return "verify";
     }
 
+    @GetMapping("/contact")
+    public String contact() {
+        return "contact";
+    }
+
     private String prepareVerifyForm(String certificateId, Model model) {
         model.addAttribute("certificateId", certificateId == null ? "" : certificateId);
         model.addAttribute("result", null);
