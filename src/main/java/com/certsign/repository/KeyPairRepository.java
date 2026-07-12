@@ -10,5 +10,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface KeyPairRepository extends JpaRepository<KeyPair, Long> {
     Optional<KeyPair> findFirstByActiveTrueOrderByCreatedAtDesc();
+    java.util.List<KeyPair> findAllByOrderByCreatedAtDesc();
 }
 

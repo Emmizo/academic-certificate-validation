@@ -220,13 +220,11 @@ public class AdminController {
         return entry;
     }
 
-    /**
-     * Shows the RSA key management page with the currently active public key.
-     */
     @GetMapping("/admin/keys")
     public String keys(Model model) {
         var activeKey = keyPairRepository.findFirstByActiveTrueOrderByCreatedAtDesc();
         model.addAttribute("activeKey", activeKey.orElse(null));
+        model.addAttribute("allKeys", keyPairRepository.findAllByOrderByCreatedAtDesc());
         return "admin/keys";
     }
 
@@ -250,6 +248,19 @@ public class AdminController {
                 .build();
         keyPairRepository.save(newKp);
 
+        return "redirect:/admin/keys";
+    }
+
+    /**
+     * Manually deactivates a specific cryptographic key pair.
+     */
+    @PostMapping("/admin/keys/{id}/deactivate")
+    @Transactional
+    public String deactivateKey(@PathVariable("id") Long id) {
+        keyPairRepository.findById(id).ifPresent(kp -> {
+            kp.setActive(false);
+            keyPairRepository.save(kp);
+        });
         return "redirect:/admin/keys";
     }
 

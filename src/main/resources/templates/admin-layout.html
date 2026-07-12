@@ -76,29 +76,26 @@
                     <span class="h-4 w-4 rounded-full border border-white/40 flex items-center justify-center text-[0.55rem]">U</span>
                     <span>Users</span>
                 </a>
-            </div>
-        </div>
 
-        <div sec:authorize="hasAnyRole('SECRETARY','SIGNER')">
-            <div class="px-2 text-[0.7rem] font-semibold uppercase tracking-wide text-slate-200/70">Issuance</div>
-            <div class="mt-2 space-y-1">
-
-
-                <a sec:authorize="hasRole('SECRETARY')"
-                   th:href="@{/admin/reports}"
-                   th:classappend="${#httpServletRequest != null and #httpServletRequest.requestURI.startsWith('/admin/reports')} ? ' bg-white text-[#164655]' : ''"
-                   class="flex items-center gap-2 rounded-lg px-3 py-2 text-slate-100 hover:bg-white/10 transition-colors duration-150">
-                    <span class="h-4 w-4 rounded-full border border-white/40 flex items-center justify-center text-[0.55rem]">R</span>
-                    <span>Reports</span>
-                </a>
-
-                <!-- Keys — signer only -->
-                <a sec:authorize="hasRole('SIGNER')"
+                <!-- Manage Signing Keypairs — admin only -->
+                <a sec:authorize="hasAnyRole('SUPER_ADMIN','ADMIN')"
                    th:href="@{/admin/keys}"
                    th:classappend="${#httpServletRequest != null and #httpServletRequest.requestURI.startsWith('/admin/keys')} ? ' bg-white text-[#164655]' : ''"
                    class="flex items-center gap-2 rounded-lg px-3 py-2 text-slate-100 hover:bg-white/10 transition-colors duration-150">
                     <span class="h-4 w-4 rounded-full border border-white/40 flex items-center justify-center text-[0.55rem]">K</span>
-                    <span>Keys</span>
+                    <span>Manage Signing Keypairs</span>
+                </a>
+            </div>
+        </div>
+
+        <div sec:authorize="hasRole('SECRETARY')">
+            <div class="px-2 text-[0.7rem] font-semibold uppercase tracking-wide text-slate-200/70">Issuance</div>
+            <div class="mt-2 space-y-1">
+                <a th:href="@{/admin/reports}"
+                   th:classappend="${#httpServletRequest != null and #httpServletRequest.requestURI.startsWith('/admin/reports')} ? ' bg-white text-[#164655]' : ''"
+                   class="flex items-center gap-2 rounded-lg px-3 py-2 text-slate-100 hover:bg-white/10 transition-colors duration-150">
+                    <span class="h-4 w-4 rounded-full border border-white/40 flex items-center justify-center text-[0.55rem]">R</span>
+                    <span>Reports</span>
                 </a>
             </div>
         </div>
@@ -159,10 +156,6 @@
                     <a th:href="@{/admin/profile}"
                        class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 border-b border-slate-100">
                         Profile
-                    </a>
-                    <a th:href="@{/admin/profile}"
-                       class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 border-b border-slate-100">
-                        Change Password
                     </a>
                     <a th:href="@{/logout}"
                        class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">

@@ -34,7 +34,8 @@ public class SecurityConfig {
                                 "/verify/result",
                                 "/contact",
                                 "/forgot-password",
-                                "/reset-password"
+                                "/reset-password",
+                                "/api/v1/certificates/verify"
                         ).permitAll()
                         .requestMatchers("/css/**", "/js/**", "/images/**", "/webjars/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/admin/dashboard").hasAnyRole("SUPER_ADMIN", "ADMIN", "SIGNER", "PRINCIPAL", "SECRETARY", "USER_MANAGER")
@@ -43,6 +44,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/admin/users/*/role").hasAnyRole("SUPER_ADMIN", "ADMIN")
                         .requestMatchers(HttpMethod.POST, "/admin/users/*").hasAnyRole("SUPER_ADMIN", "ADMIN")
                         // Admin-only actions
+                        .requestMatchers("/admin/keys/**").hasAnyRole("SUPER_ADMIN", "ADMIN")
                         .requestMatchers(HttpMethod.POST, "/admin/users/*/enabled").hasAnyRole("SUPER_ADMIN", "ADMIN")
                         .requestMatchers(HttpMethod.POST, "/admin/users/*/delete").hasAnyRole("SUPER_ADMIN", "ADMIN")
                         .requestMatchers(HttpMethod.POST, "/admin/users/*/impersonate").hasAnyRole("SUPER_ADMIN", "ADMIN")
