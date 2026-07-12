@@ -6,23 +6,27 @@ package com.certsign.controller;
 
 import com.certsign.dto.VerificationResult;
 import com.certsign.service.CertificateService;
+import com.certsign.service.MailService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
 public class PublicController {
 
     private final CertificateService certificateService;
+    private final MailService mailService;
 
     /**
      * Creates the public controller that exposes certificate verification endpoints.
      */
-    public PublicController(CertificateService certificateService) {
+    public PublicController(CertificateService certificateService, MailService mailService) {
         this.certificateService = certificateService;
+        this.mailService = mailService;
     }
 
     @GetMapping("/")
@@ -59,6 +63,30 @@ public class PublicController {
     @GetMapping("/contact")
     public String contact() {
         return "contact";
+    }
+
+    @PostMapping("/contact")
+    public String contactSubmit(
+            @RequestParam("name") String name,
+            @RequestParam("email") String email,
+            @RequestParam("message") String message,
+            RedirectAttributes redirectAttributes
+    ) {
+        String recipient = "manishimweyves11@gmail.com";
+        String subject = "New Contact Inquiry from " + name;
+        String body = """
+                You have received a new contact inquiry:
+                
+                Name: %s
+                Email: %s
+                
+                Message:
+                %s
+                """.formatted(name, email, message);
+
+        mailService.send(recipient, subject, body);
+        redirectAttributes.addFlashAttribute("success", "Your message has been sent successfully!");
+        return "redirect:/contact";
     }
 
     private String prepareVerifyForm(String certificateId, Model model) {

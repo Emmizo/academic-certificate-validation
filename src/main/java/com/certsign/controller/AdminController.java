@@ -168,7 +168,7 @@ public class AdminController {
         }
         long activeUsers = users.stream().filter(User::isEnabled).count();
         long inactiveUsers = users.size() - activeUsers;
-        boolean canImpersonate = isSuperAdmin;
+        boolean canImpersonate = isSuperAdmin || isAdmin;
 
         model.addAttribute("username", auth.getName());
         model.addAttribute("isSuperAdmin", isSuperAdmin);
@@ -675,25 +675,53 @@ public class AdminController {
                               Authentication auth,
                               HttpServletRequest request,
                               HttpServletResponse response) {
-        boolean isSuperAdmin = auth.getAuthorities().stream()
-                .anyMatch(a -> "ROLE_SUPER_ADMIN".equals(a.getAuthority()));
-        if (!isSuperAdmin) {
-            throw new org.springframework.security.access.AccessDeniedException("Only super admin can impersonate users");
+        boolean isAuthorized = auth.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_SUPER_ADMIN".equals(a.getAuthority())
+                        || "ROLE_ADMIN".equals(a.getAuthority()));
+        if (!isAuthorized) {
+            throw new org.springframework.security.access.AccessDeniedException("Only admins can impersonate users");
         }
         User targetUser = userRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
         if (!targetUser.isEnabled()) {
             throw new IllegalStateException("Cannot impersonate a disabled user");
         }
+
+        // Save original admin username in session if not already impersonating
+        jakarta.servlet.http.HttpSession session = request.getSession(true);
+        if (session.getAttribute("originalUserUsername") == null) {
+            session.setAttribute("originalUserUsername", auth.getName());
+        }
+
         UserDetails details = userService.loadUserByUsername(targetUser.getUsername());
         UsernamePasswordAuthenticationToken newAuth =
                 new UsernamePasswordAuthenticationToken(details, null, details.getAuthorities());
         SecurityContext ctx = SecurityContextHolder.createEmptyContext();
         ctx.setAuthentication(newAuth);
         SecurityContextHolder.setContext(ctx);
-        request.getSession(true).setAttribute(
+        session.setAttribute(
                 HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, ctx);
         return "redirect:/admin/dashboard";
+    }
+
+    @PostMapping("/admin/stop-impersonate")
+    public String stopImpersonate(HttpServletRequest request) {
+        jakarta.servlet.http.HttpSession session = request.getSession(false);
+        if (session != null) {
+            String originalUsername = (String) session.getAttribute("originalUserUsername");
+            if (originalUsername != null) {
+                UserDetails details = userService.loadUserByUsername(originalUsername);
+                UsernamePasswordAuthenticationToken newAuth =
+                        new UsernamePasswordAuthenticationToken(details, null, details.getAuthorities());
+                SecurityContext ctx = SecurityContextHolder.createEmptyContext();
+                ctx.setAuthentication(newAuth);
+                SecurityContextHolder.setContext(ctx);
+                session.setAttribute(
+                        HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, ctx);
+                session.removeAttribute("originalUserUsername");
+            }
+        }
+        return "redirect:/admin/users";
     }
 
     /**

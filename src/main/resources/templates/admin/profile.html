@@ -26,6 +26,13 @@
                     <dd class="mt-1 text-sm font-semibold text-slate-900" th:text="${currentUser.username}">admin</dd>
                 </div>
                 <div>
+                    <dt class="text-xs text-slate-500">Full Name</dt>
+                    <dd class="mt-1 text-sm font-semibold text-slate-900"
+                        th:text="${(currentUser.fullName != null and !#strings.isEmpty(currentUser.fullName)) ? currentUser.fullName : 'Not set'}">
+                        Principal Officer
+                    </dd>
+                </div>
+                <div>
                     <dt class="text-xs text-slate-500">Role</dt>
                     <dd class="mt-1 text-sm font-semibold text-slate-900" th:text="${currentUser.role}">ADMIN</dd>
                 </div>

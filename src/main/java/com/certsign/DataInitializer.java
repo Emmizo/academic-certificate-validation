@@ -56,16 +56,13 @@ public class DataInitializer implements CommandLineRunner {
         record Seed(String username, String fullName, String email, String password, UserRole role) {}
 
         List<Seed> seeds = List.of(
-            new Seed("superadmin",   "Super Admin",        "superadmin@tumbacollege.rw", "SuperAdmin@123", UserRole.SUPER_ADMIN),
             new Seed(adminUsername,  "System Admin",       "admin@tumbacollege.rw",     adminPassword,   UserRole.ADMIN),
             new Seed("principal",    "Principal Officer",  "principal@tumbacollege.rw", "Principal@123", UserRole.PRINCIPAL),
-            new Seed("secretary",    "Secretary Officer",  "secretary@tumbacollege.rw", "Secretary@123", UserRole.SECRETARY),
-            new Seed("signer",       "Signer Officer",     "signer@tumbacollege.rw",    "Signer@123",    UserRole.SIGNER),
-            new Seed("verifier",     "Verifier Officer",   "verifier@tumbacollege.rw",  "Verifier@123",  UserRole.VERIFIER)
+            new Seed("secretary",    "Secretary Officer",  "secretary@tumbacollege.rw", "Secretary@123", UserRole.SECRETARY)
         );
 
         for (Seed s : seeds) {
-            if (userRepository.findByUsername(s.username()).isEmpty()) {
+            if (userRepository.findByUsername(s.username()).isEmpty() && !userRepository.existsByRole(s.role())) {
                 userRepository.save(User.builder()
                         .username(s.username())
                         .fullName(s.fullName())
@@ -84,7 +81,8 @@ public class DataInitializer implements CommandLineRunner {
         List<Seed> types = List.of(
                 new Seed("Bachelor", "Undergraduate degree qualification"),
                 new Seed("Diploma", "Diploma-level qualification"),
-                new Seed("Certificate", "Short professional certificate qualification")
+                new Seed("Certificate", "Short professional certificate qualification"),
+                new Seed("Training Program", "Technical training program qualification")
         );
 
         for (Seed s : types) {
@@ -103,13 +101,10 @@ public class DataInitializer implements CommandLineRunner {
         record ProgramSeed(String name, String licenceTypeName) {}
 
         List<ProgramSeed> programs = List.of(
-            new ProgramSeed("Bachelor of Science in Computer Science", "Bachelor"),
-            new ProgramSeed("Bachelor of Business Administration", "Bachelor"),
-            new ProgramSeed("Bachelor of Education", "Bachelor"),
-            new ProgramSeed("Bachelor of Engineering in Civil Engineering", "Bachelor"),
-            new ProgramSeed("Diploma in Information Technology", "Diploma"),
-            new ProgramSeed("Diploma in Accounting", "Diploma"),
-            new ProgramSeed("Certificate in Project Management", "Certificate")
+            new ProgramSeed("Electricity", "Training Program"),
+            new ProgramSeed("Electronic", "Training Program"),
+            new ProgramSeed("IT", "Training Program"),
+            new ProgramSeed("Energy", "Training Program")
         );
 
         for (ProgramSeed s : programs) {
@@ -134,26 +129,50 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private void seedStudents() {
-        record StudentSeed(String number, String name, String email, LocalDate dob) {}
+        record StudentSeed(String number, String name, String email, LocalDate dob, String attendedProgram, String academicYear) {}
 
         List<StudentSeed> students = List.of(
-            new StudentSeed("TC2024001", "Alice Uwimana",   "alice.uwimana@example.rw",   LocalDate.of(2000, 3, 15)),
-            new StudentSeed("TC2024002", "Bob Nkurunziza",  "bob.nkurunziza@example.rw",  LocalDate.of(1999, 7, 22)),
-            new StudentSeed("TC2024003", "Claire Mukamana", "claire.mukamana@example.rw", LocalDate.of(2001, 1, 10)),
-            new StudentSeed("TC2024004", "David Habimana",  "david.habimana@example.rw",  LocalDate.of(2000, 11, 5)),
-            new StudentSeed("TC2024005", "Esther Uwineza",  "esther.uwineza@example.rw",  LocalDate.of(1998, 6, 30))
+            new StudentSeed("TC2024001", "Alice Uwimana",   "alice.uwimana@example.rw",   LocalDate.of(2000, 3, 15), "IT", "2023-2024"),
+            new StudentSeed("TC2024002", "Bob Nkurunziza",  "bob.nkurunziza@example.rw",  LocalDate.of(1999, 7, 22), "IT", "2023-2024"),
+            new StudentSeed("TC2024003", "Claire Mukamana", "claire.mukamana@example.rw", LocalDate.of(2001, 1, 10), "Electricity", "2023-2024"),
+            new StudentSeed("TC2024004", "David Habimana",  "david.habimana@example.rw",  LocalDate.of(2000, 11, 5), "Electronic", "2023-2024"),
+            new StudentSeed("TC2024005", "Esther Uwineza",  "esther.uwineza@example.rw",  LocalDate.of(1998, 6, 30), "Energy", "2023-2024")
         );
 
         for (StudentSeed s : students) {
-            if (studentRepository.findByStudentNumber(s.number()).isEmpty()) {
+            var existingOpt = studentRepository.findByStudentNumber(s.number());
+            if (existingOpt.isEmpty()) {
                 studentRepository.save(Student.builder()
                         .studentNumber(s.number())
                         .fullName(s.name())
                         .email(s.email())
                         .dateOfBirth(s.dob())
+                        .attendedProgram(s.attendedProgram())
+                        .academicYear(s.academicYear())
                         .status(StudentStatus.ACTIVE)
                         .build());
                 System.out.printf("[Seed] Created student: %s (%s)%n", s.name(), s.number());
+            } else {
+                Student existing = existingOpt.get();
+                boolean changed = false;
+                if (existing.getAttendedProgram() == null || existing.getAttendedProgram().trim().isEmpty() ||
+                        existing.getAttendedProgram().contains("Computer Science") ||
+                        existing.getAttendedProgram().contains("Information Technology") ||
+                        existing.getAttendedProgram().contains("Business Administration") ||
+                        existing.getAttendedProgram().contains("Civil Engineering") ||
+                        existing.getAttendedProgram().contains("Accounting")) {
+                    existing.setAttendedProgram(s.attendedProgram());
+                    changed = true;
+                }
+                if (existing.getAcademicYear() == null || existing.getAcademicYear().trim().isEmpty() ||
+                        existing.getAcademicYear().contains("/")) {
+                    existing.setAcademicYear(s.academicYear());
+                    changed = true;
+                }
+                if (changed) {
+                    studentRepository.save(existing);
+                    System.out.printf("[Seed] Updated existing student program/year: %s (%s)%n", existing.getFullName(), existing.getStudentNumber());
+                }
             }
         }
     }

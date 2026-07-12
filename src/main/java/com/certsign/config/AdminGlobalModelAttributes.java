@@ -53,4 +53,10 @@ public class AdminGlobalModelAttributes {
         }
         return certificateRepository.countByApprovalStatus(CertificateApprovalStatus.PENDING_APPROVAL);
     }
+
+    @ModelAttribute("isImpersonating")
+    public boolean isImpersonating(jakarta.servlet.http.HttpServletRequest request) {
+        jakarta.servlet.http.HttpSession session = request.getSession(false);
+        return session != null && session.getAttribute("originalUserUsername") != null;
+    }
 }

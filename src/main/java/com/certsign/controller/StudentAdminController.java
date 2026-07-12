@@ -98,13 +98,16 @@ public class StudentAdminController {
             }
         }
 
-        boolean exists = studentRepository.findByStudentNumber(studentRequest.getStudentNumber()).isPresent();
-        if (exists) {
-            return buildFormModel(model, studentRequest, "A student with this Student ID already exists.", null);
+        String generatedId = studentRequest.getStudentNumber();
+        if (generatedId == null || generatedId.trim().isEmpty() || studentRepository.findByStudentNumber(generatedId).isPresent()) {
+            long nextNum = studentRepository.count() + 1;
+            do {
+                generatedId = "TC" + java.time.Year.now().getValue() + String.format("%03d", nextNum++);
+            } while (studentRepository.findByStudentNumber(generatedId).isPresent());
         }
 
         Student s = Student.builder()
-                .studentNumber(studentRequest.getStudentNumber())
+                .studentNumber(generatedId)
                 .fullName(studentRequest.getFullName())
                 .email(studentRequest.getEmail())
                 .nationalId(studentRequest.getNationalId())
@@ -215,6 +218,14 @@ public class StudentAdminController {
         if (r == null) return "Invalid request";
         if (isBlank(r.getStudentNumber())) return "Student ID is required";
         if (isBlank(r.getFullName())) return "Full name is required";
+        if (isBlank(r.getEmail())) return "Email is required";
+        if (isBlank(r.getNationalId())) return "National ID / Passport is required";
+        if (r.getDateOfBirth() == null) return "Date of birth is required";
+        if (isBlank(r.getAttendedProgram())) return "Attended program is required";
+        if (isBlank(r.getAcademicYear())) return "Academic year is required";
+        if (!r.getAcademicYear().matches("^\\d{4}-\\d{4}$")) {
+            return "Academic year must be in the format YYYY-YYYY (e.g. 2025-2026)";
+        }
         return null;
     }
 

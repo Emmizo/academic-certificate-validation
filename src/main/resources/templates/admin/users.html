@@ -16,6 +16,12 @@
                 Create New User
             </a>
         </div>
+        <div th:if="${success}" class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800" th:text="${success}">
+            Success message
+        </div>
+        <div th:if="${error}" class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" th:text="${error}">
+            Error message
+        </div>
 
         <div th:if="${param.created}" class="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
             User created successfully.
@@ -101,6 +107,12 @@
                                 th:data-enabled="${user.enabled}"
                                 class="toggle-status-btn rounded-md border bg-white px-2 py-1 text-xs font-semibold">
                         </button>
+                        <button th:if="${user.username != currentUsername}" type="button"
+                                th:data-user-id="${user.id}"
+                                th:data-username="${user.username}"
+                                class="delete-user-btn rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-500 hover:bg-slate-50 hover:text-slate-800">
+                            Delete
+                        </button>
                         <form th:if="${canImpersonate and user.enabled}"
                               th:action="@{/admin/users/{id}/impersonate(id=${user.id})}"
                               method="post"
@@ -159,54 +171,106 @@
             </div>
         </div>
     </div>
-</main>
 
-<script>
-(function () {
-    var modal = document.getElementById('status-modal');
-    var modalTitle = document.getElementById('modal-title');
-    var modalBody = document.getElementById('modal-body');
-    var modalForm = document.getElementById('modal-form');
-    var modalEnabled = document.getElementById('modal-enabled');
-    var modalConfirm = document.getElementById('modal-confirm');
-    var modalCancel = document.getElementById('modal-cancel');
+    <!-- Confirmation modal for delete -->
+    <div id="delete-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/40">
+        <div class="w-full max-w-sm bg-white rounded-2xl shadow-xl border border-slate-200 p-6 mx-4">
+            <h2 id="delete-modal-title" class="text-lg font-semibold text-slate-900">Delete User</h2>
+            <p id="delete-modal-body" class="mt-2 text-sm text-slate-600"></p>
+            <div class="mt-6 flex justify-end gap-3">
+                <button id="delete-modal-cancel"
+                        class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                    Cancel
+                </button>
+                <form id="delete-modal-form" method="post" class="inline">
+                    <input type="hidden" name="_csrf" th:value="${_csrf.token}"/>
+                    <button type="submit"
+                            id="delete-modal-confirm"
+                            class="rounded-lg px-4 py-2 text-sm font-semibold text-white bg-red-600 hover:bg-red-700">
+                        Delete
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
 
-    document.querySelectorAll('.toggle-status-btn').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-            var userId = btn.getAttribute('data-user-id');
-            var username = btn.getAttribute('data-username');
-            var isEnabled = btn.getAttribute('data-enabled') === 'true';
-            var newEnabled = !isEnabled;
+    <script>
+    (function () {
+        // Status Modal Elements
+        var modal = document.getElementById('status-modal');
+        var modalTitle = document.getElementById('modal-title');
+        var modalBody = document.getElementById('modal-body');
+        var modalForm = document.getElementById('modal-form');
+        var modalEnabled = document.getElementById('modal-enabled');
+        var modalConfirm = document.getElementById('modal-confirm');
+        var modalCancel = document.getElementById('modal-cancel');
 
-            modalForm.action = '/admin/users/' + userId + '/enabled';
-            modalEnabled.value = newEnabled;
+        document.querySelectorAll('.toggle-status-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var userId = btn.getAttribute('data-user-id');
+                var username = btn.getAttribute('data-username');
+                var isEnabled = btn.getAttribute('data-enabled') === 'true';
+                var newEnabled = !isEnabled;
 
-            if (newEnabled) {
-                modalTitle.textContent = 'Activate ' + username + '?';
-                modalBody.textContent = 'This will allow ' + username + ' to log in to the portal.';
-                modalConfirm.className = 'rounded-lg px-4 py-2 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700';
-                modalConfirm.textContent = 'Activate';
-            } else {
-                modalTitle.textContent = 'Deactivate ' + username + '?';
-                modalBody.textContent = username + ' will no longer be able to log in until reactivated.';
-                modalConfirm.className = 'rounded-lg px-4 py-2 text-sm font-semibold text-white bg-red-600 hover:bg-red-700';
-                modalConfirm.textContent = 'Deactivate';
-            }
+                modalForm.action = '/admin/users/' + userId + '/enabled';
+                modalEnabled.value = newEnabled;
 
-            modal.classList.remove('hidden');
+                if (newEnabled) {
+                    modalTitle.textContent = 'Activate ' + username + '?';
+                    modalBody.textContent = 'This will allow ' + username + ' to log in to the portal.';
+                    modalConfirm.className = 'rounded-lg px-4 py-2 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700';
+                    modalConfirm.textContent = 'Activate';
+                } else {
+                    modalTitle.textContent = 'Deactivate ' + username + '?';
+                    modalBody.textContent = username + ' will no longer be able to log in until reactivated.';
+                    modalConfirm.className = 'rounded-lg px-4 py-2 text-sm font-semibold text-white bg-red-600 hover:bg-red-700';
+                    modalConfirm.textContent = 'Deactivate';
+                }
+
+                modal.classList.remove('hidden');
+            });
         });
-    });
 
-    modalCancel.addEventListener('click', function () {
-        modal.classList.add('hidden');
-    });
-
-    modal.addEventListener('click', function (e) {
-        if (e.target === modal) {
+        modalCancel.addEventListener('click', function () {
             modal.classList.add('hidden');
-        }
-    });
-})();
-</script>
+        });
+
+        modal.addEventListener('click', function (e) {
+            if (e.target === modal) {
+                modal.classList.add('hidden');
+            }
+        });
+
+        // Delete Modal Elements
+        var deleteModal = document.getElementById('delete-modal');
+        var deleteModalTitle = document.getElementById('delete-modal-title');
+        var deleteModalBody = document.getElementById('delete-modal-body');
+        var deleteModalForm = document.getElementById('delete-modal-form');
+        var deleteModalCancel = document.getElementById('delete-modal-cancel');
+
+        document.querySelectorAll('.delete-user-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var userId = btn.getAttribute('data-user-id');
+                var username = btn.getAttribute('data-username');
+
+                deleteModalForm.action = '/admin/users/' + userId + '/delete';
+                deleteModalTitle.textContent = 'Delete ' + username + '?';
+                deleteModalBody.textContent = 'Are you sure you want to delete user ' + username + '? This action cannot be undone.';
+                deleteModal.classList.remove('hidden');
+            });
+        });
+
+        deleteModalCancel.addEventListener('click', function () {
+            deleteModal.classList.add('hidden');
+        });
+
+        deleteModal.addEventListener('click', function (e) {
+            if (e.target === deleteModal) {
+                deleteModal.classList.add('hidden');
+            }
+        });
+    })();
+    </script>
+</main>
 </body>
 </html>

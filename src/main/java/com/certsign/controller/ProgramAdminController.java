@@ -28,22 +28,40 @@ public class ProgramAdminController {
     }
 
     @GetMapping("/admin/programs")
-    public String listPrograms(Model model) {
+    public String listPrograms(@RequestParam(value = "edit", required = false) Long editId, Model model) {
         populateProgramsModel(model);
         if (!model.containsAttribute("programRequest")) {
-            model.addAttribute("programRequest", new ProgramRequest());
+            ProgramRequest req = new ProgramRequest();
+            if (editId != null) {
+                programRepository.findById(editId).ifPresent(p -> {
+                    req.setName(p.getName());
+                    if (p.getLicenceType() != null) {
+                        req.setLicenceTypeId(p.getLicenceType().getId());
+                    }
+                    model.addAttribute("isEdit", true);
+                    model.addAttribute("editId", p.getId());
+                });
+            }
+            model.addAttribute("programRequest", req);
+        } else {
+            if (editId != null) {
+                model.addAttribute("isEdit", true);
+                model.addAttribute("editId", editId);
+            }
         }
         return "admin/programs";
     }
 
     @PostMapping("/admin/programs")
-    public String createProgram(@ModelAttribute ProgramRequest programRequest, Model model) {
+    public String createProgram(@ModelAttribute ProgramRequest programRequest, RedirectAttributes redirectAttributes) {
         if (programRequest == null || isBlank(programRequest.getName())) {
-            return renderWithError(model, "Program name is required.");
+            redirectAttributes.addFlashAttribute("error", "Program name is required.");
+            return "redirect:/admin/programs";
         }
         String normalizedName = programRequest.getName().trim();
         if (programRepository.findByNameIgnoreCase(normalizedName).isPresent()) {
-            return renderWithError(model, "This program already exists.");
+            redirectAttributes.addFlashAttribute("error", "This program already exists.");
+            return "redirect:/admin/programs";
         }
         var licenceType = programRequest.getLicenceTypeId() != null
                 ? licenceTypeRepository.findById(programRequest.getLicenceTypeId()).orElse(null)
@@ -54,6 +72,43 @@ public class ProgramAdminController {
                 .active(true)
                 .build();
         programRepository.save(program);
+        redirectAttributes.addFlashAttribute("success", "Program '" + normalizedName + "' created successfully.");
+        return "redirect:/admin/programs";
+    }
+
+    @PostMapping("/admin/programs/{id}/edit")
+    public String editProgram(
+            @PathVariable("id") Long id,
+            @ModelAttribute ProgramRequest programRequest,
+            RedirectAttributes redirectAttributes
+    ) {
+        if (programRequest == null || isBlank(programRequest.getName())) {
+            redirectAttributes.addFlashAttribute("error", "Program name is required.");
+            return "redirect:/admin/programs?edit=" + id;
+        }
+        String normalizedName = programRequest.getName().trim();
+
+        Program program = programRepository.findById(id).orElse(null);
+        if (program == null) {
+            redirectAttributes.addFlashAttribute("error", "Program not found.");
+            return "redirect:/admin/programs";
+        }
+
+        var existingOpt = programRepository.findByNameIgnoreCase(normalizedName);
+        if (existingOpt.isPresent() && !existingOpt.get().getId().equals(id)) {
+            redirectAttributes.addFlashAttribute("error", "Another program with this name already exists.");
+            return "redirect:/admin/programs?edit=" + id;
+        }
+
+        var licenceType = programRequest.getLicenceTypeId() != null
+                ? licenceTypeRepository.findById(programRequest.getLicenceTypeId()).orElse(null)
+                : null;
+
+        program.setName(normalizedName);
+        program.setLicenceType(licenceType);
+        programRepository.save(program);
+
+        redirectAttributes.addFlashAttribute("success", "Program updated successfully.");
         return "redirect:/admin/programs";
     }
 
@@ -112,6 +167,22 @@ public class ProgramAdminController {
             program.setActive(false);
             programRepository.save(program);
         });
+        return "redirect:/admin/programs";
+    }
+
+    @PostMapping("/admin/programs/{id}/delete")
+    public String deleteProgram(@PathVariable("id") Long id, RedirectAttributes redirectAttributes) {
+        var program = programRepository.findById(id).orElse(null);
+        if (program == null) {
+            redirectAttributes.addFlashAttribute("error", "Program not found.");
+            return "redirect:/admin/programs";
+        }
+        if (!program.getCertificates().isEmpty()) {
+            redirectAttributes.addFlashAttribute("error", "This program has associated certificate records and cannot be deleted permanently.");
+            return "redirect:/admin/programs";
+        }
+        programRepository.delete(program);
+        redirectAttributes.addFlashAttribute("success", "Program '" + program.getName() + "' deleted permanently.");
         return "redirect:/admin/programs";
     }
 

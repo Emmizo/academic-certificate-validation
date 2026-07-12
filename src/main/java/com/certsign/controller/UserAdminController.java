@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.certsign.model.UserRole;
 import com.certsign.service.MailService;
@@ -34,7 +35,7 @@ public class UserAdminController {
     public String listUsers(Authentication authentication, Model model) {
         model.addAttribute("users", userManagementService.listUsers());
         model.addAttribute("roles", availableRoles(authentication));
-        model.addAttribute("canImpersonate", isSuperAdmin(authentication));
+        model.addAttribute("canImpersonate", isAdmin(authentication));
         model.addAttribute("currentUsername", authentication.getName());
         return "admin/users";
     }
@@ -116,6 +117,28 @@ public class UserAdminController {
         boolean mailSent = sendStatusChangeEmail(target.getEmail(), target.getUsername(), enabled);
         return "redirect:/admin/users?statusUpdated=" + (enabled ? "active" : "inactive")
                 + (mailSent ? "" : "&statusMailError=1");
+    }
+
+    @PostMapping("/admin/users/{id}/delete")
+    public String deleteUser(@PathVariable("id") Long id,
+                             Authentication authentication,
+                             RedirectAttributes redirectAttributes) {
+        var target = userManagementService.getUser(id);
+        if (target.getUsername().equals(authentication.getName())) {
+            redirectAttributes.addFlashAttribute("error", "You cannot delete your own account while signed in.");
+            return "redirect:/admin/users";
+        }
+        if (target.getRole() == UserRole.SUPER_ADMIN && !isSuperAdmin(authentication)) {
+            redirectAttributes.addFlashAttribute("error", "Only the super admin can delete the super admin account.");
+            return "redirect:/admin/users";
+        }
+        try {
+            userManagementService.deleteUser(id);
+            redirectAttributes.addFlashAttribute("success", "User " + target.getUsername() + " deleted successfully.");
+        } catch (IllegalArgumentException ex) {
+            redirectAttributes.addFlashAttribute("error", ex.getMessage());
+        }
+        return "redirect:/admin/users";
     }
 
     @GetMapping("/admin/users/{id}/edit")
@@ -216,7 +239,11 @@ public class UserAdminController {
     }
 
     private List<UserRole> availableRoles(Authentication authentication) {
-        return List.of(UserRole.ADMIN, UserRole.SIGNER, UserRole.VERIFIER);
+        return List.of(
+                UserRole.ADMIN,
+                UserRole.SECRETARY,
+                UserRole.PRINCIPAL
+        );
     }
 
     private void assertRoleAllowed(UserRole role, Authentication authentication) {

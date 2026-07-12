@@ -142,6 +142,23 @@ public class UserManagementService {
     }
 
     @Transactional
+    public void deleteUser(Long userId) {
+        if (userId == null) {
+            throw new IllegalArgumentException("User not found.");
+        }
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found."));
+
+        if (!user.getIssuedCertificates().isEmpty() ||
+            !user.getApprovedCertificates().isEmpty() ||
+            !user.getSentCertificates().isEmpty()) {
+            throw new IllegalArgumentException("This user has associated certificate records and cannot be deleted. Deactivate their account instead.");
+        }
+
+        userRepository.delete(user);
+    }
+
+    @Transactional
     public String requestPasswordReset(String email) {
         if (isBlank(email)) {
             return null;

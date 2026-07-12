@@ -27,11 +27,7 @@
         <form th:action="${formAction}" th:object="${studentRequest}" method="post" class="space-y-4">
             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
 
-            <div>
-                <label class="block text-sm font-medium text-slate-700">Student ID / Number</label>
-                <input th:field="*{studentNumber}" type="text" required
-                       class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#164655]"/>
-            </div>
+            <input th:field="*{studentNumber}" type="hidden"/>
 
             <div>
                 <label class="block text-sm font-medium text-slate-700">Full Name</label>
@@ -40,20 +36,20 @@
             </div>
 
             <div>
-                <label class="block text-sm font-medium text-slate-700">Email (optional)</label>
-                <input th:field="*{email}" type="email"
+                <label class="block text-sm font-medium text-slate-700">Email</label>
+                <input th:field="*{email}" type="email" required
                        class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#164655]"/>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-slate-700">National ID / Passport (optional)</label>
-                    <input th:field="*{nationalId}" type="text"
+                    <label class="block text-sm font-medium text-slate-700">National ID / Passport</label>
+                    <input th:field="*{nationalId}" type="text" required
                            class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#164655]"/>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-slate-700">Date of Birth (optional)</label>
-                    <input th:field="*{dateOfBirth}" type="date"
+                    <label class="block text-sm font-medium text-slate-700">Date of Birth</label>
+                    <input th:field="*{dateOfBirth}" type="date" required
                            th:max="${#temporals.format(#temporals.createNow().minusYears(18), 'yyyy-MM-dd')}"
                            class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#164655]"/>
                 </div>
@@ -70,7 +66,8 @@
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-slate-700">Academic Year</label>
-                    <input th:field="*{academicYear}" type="text" placeholder="e.g. 2025/2026" required
+                    <input th:field="*{academicYear}" type="text" placeholder="e.g. 2025-2026" required
+                           pattern="\d{4}-\d{4}" title="Academic year must be in the format YYYY-YYYY (e.g. 2025-2026)"
                            class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#164655]"/>
                 </div>
             </div>
