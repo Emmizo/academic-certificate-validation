@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.format.annotation.DateTimeFormat;
 
 import com.certsign.dto.CertificateRequest;
 import com.certsign.model.Certificate;
@@ -269,14 +270,41 @@ public class AdminController {
      */
     @GetMapping("/admin/certificates")
     public String certificates(@RequestParam(value = "tab", defaultValue = "waiting") String tab,
+                               @RequestParam(value = "search", required = false) String search,
+                               @RequestParam(value = "startDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+                               @RequestParam(value = "endDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
                                Authentication auth,
                                Model model) {
         var allCertificates = certificateRepository.findAllForApprovalQueue();
+        var filteredCertificates = allCertificates.stream();
+        
+        if (startDate != null) {
+            filteredCertificates = filteredCertificates
+                .filter(c -> c.getIssueDate() != null && !c.getIssueDate().isBefore(startDate));
+        }
+        if (endDate != null) {
+            filteredCertificates = filteredCertificates
+                .filter(c -> c.getIssueDate() != null && !c.getIssueDate().isAfter(endDate));
+        }
+
+        if (search != null && !search.isBlank()) {
+            String q = search.toLowerCase().trim();
+            filteredCertificates = filteredCertificates
+                .filter(c -> (c.getCertificateId() != null && c.getCertificateId().toLowerCase().contains(q)) ||
+                             (c.getStudent() != null && c.getStudent().getStudentNumber() != null && c.getStudent().getStudentNumber().toLowerCase().contains(q)) ||
+                             (c.getStudent() != null && c.getStudent().getFullName() != null && c.getStudent().getFullName().toLowerCase().contains(q)) ||
+                             (c.getDegree() != null && c.getDegree().toLowerCase().contains(q)) ||
+                             (c.getApprovalStatus() != null && c.getApprovalStatus().name().toLowerCase().contains(q)) ||
+                             (c.getIssueDate() != null && c.getIssueDate().toString().toLowerCase().contains(q)));
+        }
+        
+        List<Certificate> filteredList = filteredCertificates.toList();
+
         boolean principalView = hasRole(auth, "ROLE_PRINCIPAL")
                 && !hasRole(auth, "ROLE_SUPER_ADMIN")
                 && !hasRole(auth, "ROLE_ADMIN");
         String activeTab = normalizeCertificateTab(tab);
-        var certificates = allCertificates.stream()
+        var certificates = filteredList.stream()
                 .filter(cert -> certificateBelongsToTab(cert, activeTab, principalView))
                 .toList();
         Map<Long, String> validityById = new HashMap<>();
@@ -290,6 +318,7 @@ public class AdminController {
         model.addAttribute("certificates", certificates);
         model.addAttribute("validityById", validityById);
         model.addAttribute("activeTab", activeTab);
+        model.addAttribute("searchQuery", search);
         model.addAttribute("waitingCount", allCertificates.stream()
                 .filter(cert -> cert.getApprovalStatus() == CertificateApprovalStatus.PENDING_APPROVAL)
                 .filter(cert -> !principalView || cert.isSubmittedForApproval())
