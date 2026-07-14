@@ -445,7 +445,6 @@ class CertificateServiceTest {
         cert.setDigitalSignature(signature);
 
         when(certificateRepository.findById(50L)).thenReturn(Optional.of(cert));
-        when(studentRepository.findById(student.getId())).thenReturn(Optional.of(student));
         when(certificateRepository.save(any(Certificate.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0, Certificate.class));
         CertificateRequest updateReq = new CertificateRequest();
@@ -453,6 +452,9 @@ class CertificateServiceTest {
         updateReq.setDegree("New Degree");
         updateReq.setInstitution("New Institution");
         updateReq.setIssueDate(LocalDate.now());
+
+        when(programRepository.findByNameIgnoreCaseAndActiveTrue("New Degree"))
+                .thenReturn(Optional.of(Program.builder().id(2L).name("New Degree").active(true).build()));
 
         // Act: update returns the certificate to unsigned draft status
         Certificate updated = certificateService.updateCertificate(50L, updateReq);

@@ -58,10 +58,17 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/admin/licence-types/*/deactivate").hasAnyRole("SUPER_ADMIN", "ADMIN", "SECRETARY")
                         .requestMatchers("/admin/users/new").hasAnyRole("SUPER_ADMIN", "ADMIN", "USER_MANAGER")
                         .requestMatchers(HttpMethod.POST, "/admin/users").hasAnyRole("SUPER_ADMIN", "ADMIN", "USER_MANAGER")
+                        // Student-only actions
+                        .requestMatchers("/admin/students/new").hasAnyRole("SUPER_ADMIN", "ADMIN", "SECRETARY")
+                        .requestMatchers(HttpMethod.GET, "/admin/students/*/edit").hasAnyRole("SUPER_ADMIN", "ADMIN", "SECRETARY")
+                        .requestMatchers(HttpMethod.POST, "/admin/students/*").hasAnyRole("SUPER_ADMIN", "ADMIN", "SECRETARY")
+                        .requestMatchers(HttpMethod.POST, "/admin/students").hasAnyRole("SUPER_ADMIN", "ADMIN", "SECRETARY")
                         // Approve / reject / bulk — PRINCIPAL or ADMIN
                         .requestMatchers(HttpMethod.POST, "/admin/certificates/bulk-approve").hasAnyRole("SUPER_ADMIN", "ADMIN", "PRINCIPAL")
                         .requestMatchers(HttpMethod.POST, "/admin/certificates/*/approve").hasAnyRole("SUPER_ADMIN", "ADMIN", "PRINCIPAL")
                         .requestMatchers(HttpMethod.POST, "/admin/certificates/*/reject").hasAnyRole("SUPER_ADMIN", "ADMIN", "PRINCIPAL")
+                        .requestMatchers(HttpMethod.GET, "/admin/certificates/*/edit").hasAnyRole("SUPER_ADMIN", "ADMIN", "SECRETARY")
+                        .requestMatchers(HttpMethod.POST, "/admin/certificates/*/edit").hasAnyRole("SUPER_ADMIN", "ADMIN", "SECRETARY")
                         // Secretary sends certificates to students (with or without principal signature)
                         .requestMatchers(HttpMethod.POST, "/admin/certificates/bulk-send").hasAnyRole("SUPER_ADMIN", "ADMIN", "SECRETARY")
                         .requestMatchers(HttpMethod.POST, "/admin/certificates/bulk-notify-principal").hasAnyRole("SUPER_ADMIN", "ADMIN", "SECRETARY")

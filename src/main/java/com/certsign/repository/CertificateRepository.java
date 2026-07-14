@@ -36,8 +36,8 @@ public interface CertificateRepository extends JpaRepository<Certificate, Long> 
                     WHEN c.approvalStatus = com.certsign.model.CertificateApprovalStatus.APPROVED THEN 1
                     ELSE 2
                 END,
-                c.issueDate ASC,
-                c.createdAt ASC
+                c.issueDate DESC,
+                c.createdAt DESC
             """)
     List<Certificate> findAllForApprovalQueue();
 
@@ -52,6 +52,10 @@ public interface CertificateRepository extends JpaRepository<Certificate, Long> 
     long countByStudent_Id(Long studentId);
 
     List<Certificate> findByStudent_IdOrderByCreatedAtDesc(Long studentId);
+
+    boolean existsByStudent_IdAndProgram_Id(Long studentId, Long programId);
+
+    boolean existsByStudent_IdAndProgram_IdAndApprovalStatusNotIn(Long studentId, Long programId, java.util.Collection<CertificateApprovalStatus> statuses);
 
     List<Certificate> findByCreatedAtBetweenOrderByCreatedAtDesc(LocalDateTime start, LocalDateTime end);
 }

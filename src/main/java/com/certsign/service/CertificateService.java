@@ -87,6 +87,10 @@ public class CertificateService {
         Program program = programRepository.findByNameIgnoreCaseAndActiveTrue(req.getDegree().trim())
                 .orElseThrow(() -> new IllegalArgumentException("Selected program not found or inactive"));
 
+        if (certificateRepository.existsByStudent_IdAndProgram_IdAndApprovalStatusNotIn(student.getId(), program.getId(), java.util.List.of(CertificateApprovalStatus.REJECTED, CertificateApprovalStatus.REVOKED))) {
+            throw new IllegalArgumentException("A certificate has already been issued for this student in this program");
+        }
+
         Certificate cert = Certificate.builder()
                 .certificateId(generateCertificateId())
                 .studentName(student.getFullName())
@@ -122,8 +126,13 @@ public class CertificateService {
         Certificate cert = certificateRepository.findById(certificateId)
                 .orElseThrow(() -> new IllegalArgumentException("Certificate not found"));
 
+        if (cert.getApprovalStatus() != null && cert.getApprovalStatus() != CertificateApprovalStatus.PENDING_APPROVAL) {
+            throw new IllegalStateException("Only pending certificate drafts can be edited.");
+        }
+
         // Optionally update the linked student and snapshot fields if a new student is selected
-        if (req.getStudentRefId() != null) {
+        boolean studentChanged = false;
+        if (req.getStudentRefId() != null && !req.getStudentRefId().equals(cert.getStudent().getId())) {
             Student student = studentRepository.findById(req.getStudentRefId())
                     .orElseThrow(() -> new IllegalArgumentException("Selected student not found"));
             if (student.getStatus() != StudentStatus.ACTIVE) {
@@ -132,16 +141,26 @@ public class CertificateService {
             cert.setStudent(student);
             cert.setStudentName(student.getFullName());
             cert.setStudentId(student.getStudentNumber());
+            studentChanged = true;
         }
 
         if (req.getDegree() != null) {
+            Program program = programRepository.findByNameIgnoreCaseAndActiveTrue(req.getDegree().trim())
+                    .orElseThrow(() -> new IllegalArgumentException("Selected program not found or inactive"));
+            
+            boolean programChanged = cert.getProgram() == null || !cert.getProgram().getId().equals(program.getId());
+            
+            if ((studentChanged || programChanged) && certificateRepository.existsByStudent_IdAndProgram_IdAndApprovalStatusNotIn(cert.getStudent().getId(), program.getId(), java.util.List.of(CertificateApprovalStatus.REJECTED, CertificateApprovalStatus.REVOKED))) {
+                 throw new IllegalArgumentException("A certificate has already been issued for this student in this program");
+            }
+
             cert.setDegree(req.getDegree());
-            programRepository.findByNameIgnoreCaseAndActiveTrue(req.getDegree().trim())
-                    .ifPresent(program -> {
-                        cert.setProgram(program);
-                        cert.setLicenceType(program.getLicenceType());
-                    });
+            cert.setProgram(program);
+            cert.setLicenceType(program.getLicenceType());
+        } else if (studentChanged && cert.getProgram() != null && certificateRepository.existsByStudent_IdAndProgram_IdAndApprovalStatusNotIn(cert.getStudent().getId(), cert.getProgram().getId(), java.util.List.of(CertificateApprovalStatus.REJECTED, CertificateApprovalStatus.REVOKED))) {
+            throw new IllegalArgumentException("A certificate has already been issued for this student in this program");
         }
+
         cert.setInstitution(DEFAULT_INSTITUTION);
         if (req.getIssueDate() != null) {
             cert.setIssueDate(req.getIssueDate());
@@ -211,6 +230,32 @@ public class CertificateService {
     }
 
     @Transactional
+    public Certificate regenerateCertificate(Long certificateId, User issuer) {
+        Certificate oldCert = certificateRepository.findById(certificateId)
+                .orElseThrow(() -> new IllegalArgumentException("Certificate not found"));
+        
+        if (oldCert.getApprovalStatus() == CertificateApprovalStatus.REVOKED) {
+            throw new IllegalStateException("Certificate is already revoked");
+        }
+
+        // 1. Revoke the old certificate
+        oldCert.setApprovalStatus(CertificateApprovalStatus.REVOKED);
+        oldCert.setRejectionReason("Revoked to regenerate a new certificate.");
+        certificateRepository.save(oldCert);
+
+        // 2. Create the new certificate draft
+        CertificateRequest req = new CertificateRequest();
+        req.setStudentRefId(oldCert.getStudent().getId());
+        req.setDegree(oldCert.getDegree());
+        req.setInstitution(oldCert.getInstitution());
+        req.setIssueDate(oldCert.getIssueDate());
+        
+        Certificate newCert = issueCertificate(req, issuer);
+        newCert.setSubmittedForApproval(true);
+        return certificateRepository.save(newCert);
+    }
+
+    @Transactional
     /**
      * Records that the secretary (or admin) delivered the certificate PDF to the student.
      * Allowed even when the principal has not yet signed (PENDING_APPROVAL).
@@ -261,6 +306,17 @@ public class CertificateService {
                     .valid(false)
                     .message("PENDING_APPROVAL")
                     .failureReason("Certificate pending admin approval")
+                    .verifiedAt(verifiedAt)
+                    .certificate(null)
+                    .build();
+        }
+
+        if (cert.getApprovalStatus() == CertificateApprovalStatus.REVOKED) {
+            log(cert, certificateId, verifierIp, false, "Certificate has been revoked", verifiedAt);
+            return VerificationResult.builder()
+                    .valid(false)
+                    .message("INVALID")
+                    .failureReason("Certificate has been revoked")
                     .verifiedAt(verifiedAt)
                     .certificate(null)
                     .build();

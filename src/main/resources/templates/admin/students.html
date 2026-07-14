@@ -11,7 +11,8 @@
             <h1 class="text-2xl font-bold text-slate-900">Students</h1>
             <p class="mt-1 text-sm text-slate-600">Manage student records used when issuing certificates.</p>
         </div>
-        <a th:href="@{/admin/students/new}"
+        <a sec:authorize="hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SECRETARY')"
+           th:href="@{/admin/students/new}"
            class="rounded-lg bg-[#164655] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0f303a]">
             New Student
         </a>
@@ -22,7 +23,8 @@
             <div class="text-lg font-semibold text-slate-900">No students yet</div>
             <div class="mt-1 text-sm text-slate-600">Create your first student to start issuing certificates.</div>
             <div class="mt-4">
-                <a th:href="@{/admin/students/new}"
+                <a sec:authorize="hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SECRETARY')"
+                   th:href="@{/admin/students/new}"
                    class="inline-flex rounded-lg bg-[#164655] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0f303a]">
                     New Student
                 </a>
@@ -54,7 +56,7 @@
                     </span>
                 </td>
                 <td class="px-6 py-4 text-right">
-                    <div class="inline-flex items-center gap-2">
+                    <div class="inline-flex items-center gap-2" sec:authorize="hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SECRETARY')">
                     <a th:href="@{/admin/students/{id}/edit(id=${s.id})}"
                        class="rounded-md px-2 py-1 text-sm font-semibold text-[#164655] hover:bg-slate-100 hover:text-[#0f303a]">
                         Edit

@@ -155,7 +155,7 @@
 			            <div class="ml-auto flex flex-wrap items-center justify-end gap-2">
 			                <button sec:authorize="hasAnyRole('SUPER_ADMIN','ADMIN','SECRETARY')" type="submit"
 			                        form="bulk-actions-form"
-			                        th:if="${activeTab == 'waiting' or activeTab == 'all'}"
+			                        th:if="${activeTab == 'waiting'}"
 			                        formaction="/admin/certificates/bulk-notify-principal"
 			                        class="rounded-lg border border-amber-300 bg-amber-50 px-4 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-100"
 		                        data-loading-text="Sending...">
@@ -163,7 +163,7 @@
 			                </button>
 			                <button sec:authorize="hasAnyRole('SUPER_ADMIN','ADMIN','PRINCIPAL')" type="submit"
 			                        form="bulk-actions-form"
-			                        th:if="${activeTab == 'waiting' or activeTab == 'all'}"
+			                        th:if="${activeTab == 'waiting'}"
 			                        formaction="/admin/certificates/bulk-approve"
 			                        class="rounded-lg bg-emerald-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"
 		                        data-loading-text="Signing...">
@@ -188,6 +188,7 @@
                 <th class="px-6 py-3 text-left text-[11px] font-semibold text-slate-600 uppercase tracking-wider">Student Name</th>
                 <th class="px-6 py-3 text-left text-[11px] font-semibold text-slate-600 uppercase tracking-wider">Program</th>
                 <th class="px-6 py-3 text-left text-[11px] font-semibold text-slate-600 uppercase tracking-wider">Issue Date</th>
+                <th class="px-6 py-3 text-left text-[11px] font-semibold text-slate-600 uppercase tracking-wider">Status</th>
                 <th class="px-6 py-3 text-right text-[11px] font-semibold text-slate-600 uppercase tracking-wider">Actions</th>
             </tr>
             </thead>
@@ -198,7 +199,7 @@
 		                <td class="px-4 py-4">
 			                    <input type="checkbox" name="certIds" th:value="${c.id}"
 			                           form="bulk-actions-form"
-			                           th:disabled="${c.approvalStatus != null and c.approvalStatus.name() == 'REJECTED'}"
+			                           th:disabled="${c.approvalStatus != null and (c.approvalStatus.name() == 'REJECTED' or c.approvalStatus.name() == 'REVOKED')}"
 			                           class="cert-checkbox h-4 w-4 rounded border-slate-300 text-[#164655] disabled:cursor-not-allowed disabled:opacity-40"/>
                 </td>
                 <td class="px-6 py-4 font-mono text-sm text-slate-900 whitespace-nowrap" th:text="${c.certificateId}"></td>
@@ -206,13 +207,33 @@
                 <td class="px-6 py-4 text-sm font-medium text-slate-900" th:text="${c.studentName}"></td>
                 <td class="px-6 py-4 text-sm text-slate-800" th:text="${c.degree}"></td>
                 <td class="px-6 py-4 text-sm text-slate-700 whitespace-nowrap" th:text="${c.issueDate}"></td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div th:if="${c.approvalStatus != null and c.approvalStatus.name() == 'APPROVED'}" class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700 ring-1 ring-emerald-600/20 ring-inset">
+                        <svg class="h-1.5 w-1.5 fill-emerald-500" viewBox="0 0 6 6" aria-hidden="true"><circle cx="3" cy="3" r="3" /></svg>
+                        Approved
+                    </div>
+                    <div th:if="${c.approvalStatus != null and c.approvalStatus.name() == 'PENDING_APPROVAL'}" class="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700 ring-1 ring-amber-600/20 ring-inset">
+                        <svg class="h-1.5 w-1.5 fill-amber-500" viewBox="0 0 6 6" aria-hidden="true"><circle cx="3" cy="3" r="3" /></svg>
+                        Pending
+                    </div>
+                    <div th:if="${c.approvalStatus != null and c.approvalStatus.name() == 'REJECTED'}" class="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-red-600/10 ring-inset">
+                        <svg class="h-1.5 w-1.5 fill-red-500" viewBox="0 0 6 6" aria-hidden="true"><circle cx="3" cy="3" r="3" /></svg>
+                        Rejected
+                    </div>
+                    <div th:if="${c.approvalStatus != null and c.approvalStatus.name() == 'REVOKED'}" class="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-red-600/10 ring-inset">
+                        <svg class="h-1.5 w-1.5 fill-red-500" viewBox="0 0 6 6" aria-hidden="true"><circle cx="3" cy="3" r="3" /></svg>
+                        Revoked
+                    </div>
+                </td>
                 <td class="px-6 py-4 text-right">
                     <div class="inline-flex items-center gap-2">
                     <a th:href="@{/admin/certificates/{id}(id=${c.id})}"
                        class="rounded-md px-2 py-1 text-sm font-semibold text-[#164655] hover:bg-slate-100 hover:text-[#0f303a]">
                         View Details
                     </a>
-                    <a th:href="@{/admin/certificates/{id}/edit(id=${c.id})}"
+                    <a th:if="${c.approvalStatus != null and c.approvalStatus.name() == 'PENDING_APPROVAL'}"
+                       sec:authorize="hasAnyRole('SUPER_ADMIN','ADMIN','SECRETARY')"
+                       th:href="@{/admin/certificates/{id}/edit(id=${c.id})}"
                        class="rounded-md px-2 py-1 text-sm font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-900">
                         Edit
                     </a>
@@ -229,26 +250,99 @@
                             Sign
                         </button>
                     </form>
-                    <form sec:authorize="hasAnyRole('SUPER_ADMIN','ADMIN','PRINCIPAL')"
-                          th:if="${c.approvalStatus != null and c.approvalStatus.name() == 'PENDING_APPROVAL' and c.submittedForApproval}"
-                          th:action="@{/admin/certificates/{id}/reject(id=${c.id})}"
-                          method="post"
-                          class="inline">
-                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-	                        <button type="submit"
-	                                class="rounded-md bg-red-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-red-700"
-	                                data-loading-text="Rejecting...">
-	                            Reject
-	                        </button>
-	                    </form>
+                    <button sec:authorize="hasAnyRole('SUPER_ADMIN','ADMIN','PRINCIPAL')"
+                            th:if="${c.approvalStatus != null and c.approvalStatus.name() == 'PENDING_APPROVAL' and c.submittedForApproval}"
+                            type="button"
+                            th:data-reject-url="@{/admin/certificates/{id}/reject(id=${c.id})}"
+                            onclick="openRejectModal(this.getAttribute('data-reject-url'))"
+                            class="rounded-md bg-red-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-red-700">
+                        Reject
+                    </button>
+                        <form sec:authorize="hasAnyRole('SUPER_ADMIN','ADMIN','SECRETARY')"
+                              th:if="${c.approvalStatus == null or c.approvalStatus.name() == 'APPROVED'}"
+                              th:action="@{/admin/certificates/{id}/send(id=${c.id})}"
+                              method="post"
+                              class="inline">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                            <button type="submit"
+                                    class="rounded-md bg-[#164655] px-2.5 py-1 text-xs font-semibold text-white hover:bg-[#0f303a]"
+                                    data-loading-text="Sending...">
+                                <span th:text="${c.sentAt != null} ? 'Resend' : 'Send'">Send</span>
+                            </button>
+                        </form>
+                        <form sec:authorize="hasAnyRole('SUPER_ADMIN','ADMIN')"
+                              th:if="${c.approvalStatus == null or c.approvalStatus.name() == 'APPROVED'}"
+                              th:action="@{/admin/certificates/{id}/regenerate(id=${c.id})}"
+                              method="post"
+                              class="inline"
+                              onsubmit="return confirm('Are you sure you want to mark this certificate as lost/compromised? This will revoke it and send a new draft to the Principal.');">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                            <button type="submit"
+                                    class="rounded-md border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700 hover:bg-red-100"
+                                    data-loading-text="Revamping...">
+                                Revamp as Lost
+                            </button>
+                        </form>
 		        </div>
 	                </td>
 	            </tr>
 	            </tbody>
 	        </table>
-	        </div>
+        </div>
+
+    <!-- Reject Modal -->
+    <div id="reject-modal" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-slate-900 bg-opacity-75 transition-opacity" aria-hidden="true" onclick="closeRejectModal()"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+                <div>
+                    <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+                        <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                    </div>
+                    <div class="mt-3 text-center sm:mt-5">
+                        <h3 class="text-lg leading-6 font-medium text-slate-900" id="modal-title">Reject Certificate</h3>
+                        <div class="mt-2 text-sm text-slate-500">
+                            <p>Please provide a reason for rejecting this certificate. The student will be notified.</p>
+                        </div>
+                    </div>
+                </div>
+                <form id="reject-form" method="post" class="mt-5 sm:mt-6">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                    <div class="mb-4 mt-2">
+                        <textarea name="reason" rows="4" placeholder="Type rejection reason here (optional)..."
+                                  class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 resize-y"></textarea>
+                    </div>
+                    <div class="sm:flex sm:flex-row-reverse">
+                        <button type="submit"
+                                class="w-full inline-flex justify-center rounded-lg border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm"
+                                data-loading-text="Rejecting...">
+                            Confirm Reject
+                        </button>
+                        <button type="button"
+                                onclick="closeRejectModal()"
+                                class="mt-3 w-full inline-flex justify-center rounded-lg border border-slate-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#164655] sm:mt-0 sm:w-auto sm:text-sm">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
 <script>
+function openRejectModal(actionUrl) {
+    document.getElementById('reject-form').action = actionUrl;
+    document.getElementById('reject-modal').classList.remove('hidden');
+}
+
+function closeRejectModal() {
+    document.getElementById('reject-modal').classList.add('hidden');
+    document.getElementById('reject-form').reset();
+}
+
 (function () {
     const selectAll = document.getElementById('select-all-certs');
     if (!selectAll) return;

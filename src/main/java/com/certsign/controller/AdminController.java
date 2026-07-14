@@ -385,6 +385,10 @@ public class AdminController {
     public String editCertificate(@PathVariable("id") Long id, Model model) {
         var cert = certificateRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Certificate not found"));
+                
+        if (cert.getApprovalStatus() != null && cert.getApprovalStatus() != CertificateApprovalStatus.PENDING_APPROVAL) {
+            return "redirect:/admin/certificates/" + id + "?editError=notPending";
+        }
 
         CertificateRequest req = new CertificateRequest();
         if (cert.getStudent() != null) {
@@ -425,8 +429,19 @@ public class AdminController {
             return "admin/certificate-edit";
         }
 
-        var updated = certificateService.updateCertificate(id, certificateRequest);
-        return "redirect:/admin/certificates/" + updated.getId();
+        try {
+            var updated = certificateService.updateCertificate(id, certificateRequest);
+            return "redirect:/admin/certificates/" + updated.getId();
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            var cert = certificateRepository.findById(id)
+                    .orElseThrow(() -> new IllegalArgumentException("Certificate not found"));
+            model.addAttribute("certificate", cert);
+            model.addAttribute("certificateRequest", certificateRequest);
+            model.addAttribute("students", loadActiveStudents());
+            model.addAttribute("programs", programRepository.findByActiveTrueOrderByNameAsc());
+            model.addAttribute("error", ex.getMessage());
+            return "admin/certificate-edit";
+        }
     }
 
     /**
@@ -865,6 +880,10 @@ public class AdminController {
     }
 
     private boolean certificateBelongsToTab(Certificate cert, String tab, boolean principalView) {
+        if (cert.getApprovalStatus() == CertificateApprovalStatus.REVOKED) {
+            return false;
+        }
+        
         if ("ready".equals(tab)) {
             return cert.getApprovalStatus() == CertificateApprovalStatus.APPROVED && cert.getSentAt() == null;
         }
@@ -876,6 +895,18 @@ public class AdminController {
         }
         return cert.getApprovalStatus() == CertificateApprovalStatus.PENDING_APPROVAL
                 && (!principalView || cert.isSubmittedForApproval());
+    }
+
+    @PostMapping("/admin/certificates/{id}/regenerate")
+    public String regenerateCertificate(@PathVariable("id") Long id, Authentication auth) {
+        User issuer = userRepository.findByUsername(auth.getName())
+                .orElseThrow(() -> new IllegalStateException("Authenticated user not found"));
+        try {
+            Certificate newCert = certificateService.regenerateCertificate(id, issuer);
+            return "redirect:/admin/certificates/" + newCert.getId() + "?regenerated=1";
+        } catch (Exception ex) {
+            return "redirect:/admin/certificates/" + id + "?regenerateError=1";
+        }
     }
 
     /**

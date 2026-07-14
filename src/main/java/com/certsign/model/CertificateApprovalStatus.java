@@ -3,5 +3,6 @@ package com.certsign.model;
 public enum CertificateApprovalStatus {
     PENDING_APPROVAL,
     APPROVED,
-    REJECTED
+    REJECTED,
+    REVOKED
 }
