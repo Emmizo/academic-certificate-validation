@@ -12,9 +12,18 @@
                 <h1 class="text-3xl font-semibold text-slate-900">Users</h1>
                 <p class="mt-1 text-sm text-slate-600">Admin user listing, role assignment, and support access.</p>
             </div>
-            <a th:href="@{/admin/users/new}" class="rounded-lg bg-[#164655] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0f303a]">
-                Create New User
-            </a>
+            <div class="flex items-center gap-4">
+                <div class="relative">
+                    <input type="text" id="searchInput" placeholder="Search users..." 
+                           class="w-64 rounded-lg border border-slate-300 px-4 py-2 pl-10 text-sm focus:border-[#164655] focus:outline-none focus:ring-1 focus:ring-[#164655]">
+                    <svg class="absolute left-3 top-2.5 h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                </div>
+                <a th:href="@{/admin/users/new}" class="rounded-lg bg-[#164655] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0f303a]">
+                    Create New User
+                </a>
+            </div>
         </div>
         <div th:if="${success}" class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800" th:text="${success}">
             Success message
@@ -275,6 +284,26 @@
                 deleteModal.classList.add('hidden');
             }
         });
+
+        // Live Search functionality
+        var searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+            searchInput.addEventListener('keyup', function() {
+                var filter = searchInput.value.toLowerCase();
+                var tbody = document.querySelector('tbody');
+                if (tbody) {
+                    var rows = tbody.getElementsByTagName('tr');
+                    for (var i = 0; i < rows.length; i++) {
+                        var text = rows[i].textContent.toLowerCase();
+                        if (text.indexOf(filter) > -1) {
+                            rows[i].style.display = "";
+                        } else {
+                            rows[i].style.display = "none";
+                        }
+                    }
+                }
+            });
+        }
     })();
     </script>
 </main>

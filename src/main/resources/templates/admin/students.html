@@ -11,11 +11,20 @@
             <h1 class="text-2xl font-bold text-slate-900">Students</h1>
             <p class="mt-1 text-sm text-slate-600">Manage student records used when issuing certificates.</p>
         </div>
-        <a sec:authorize="hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SECRETARY')"
-           th:href="@{/admin/students/new}"
-           class="rounded-lg bg-[#164655] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0f303a]">
-            New Student
-        </a>
+        <div class="flex items-center gap-4">
+            <div class="relative">
+                <input type="text" id="searchInput" placeholder="Search students..." 
+                       class="w-64 rounded-lg border border-slate-300 px-4 py-2 pl-10 text-sm focus:border-[#164655] focus:outline-none focus:ring-1 focus:ring-[#164655]">
+                <svg class="absolute left-3 top-2.5 h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+            </div>
+            <a sec:authorize="hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SECRETARY')"
+               th:href="@{/admin/students/new}"
+               class="rounded-lg bg-[#164655] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0f303a]">
+                New Student
+            </a>
+        </div>
     </div>
 
     <div class="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -37,6 +46,7 @@
             <tr>
                 <th class="px-6 py-3 text-left text-[11px] font-semibold text-slate-600 uppercase tracking-wider">Student ID</th>
                 <th class="px-6 py-3 text-left text-[11px] font-semibold text-slate-600 uppercase tracking-wider">Full Name</th>
+                <th class="px-6 py-3 text-left text-[11px] font-semibold text-slate-600 uppercase tracking-wider">National ID</th>
                 <th class="px-6 py-3 text-left text-[11px] font-semibold text-slate-600 uppercase tracking-wider">Email</th>
                 <th class="px-6 py-3 text-left text-[11px] font-semibold text-slate-600 uppercase tracking-wider">Attended Program</th>
                 <th class="px-6 py-3 text-left text-[11px] font-semibold text-slate-600 uppercase tracking-wider">Status</th>
@@ -47,6 +57,7 @@
             <tr th:each="s : ${students}" class="hover:bg-slate-50/70 transition-colors">
                 <td class="px-6 py-4 font-mono text-sm text-slate-900 whitespace-nowrap" th:text="${s.studentNumber}"></td>
                 <td class="px-6 py-4 text-sm font-medium text-slate-900" th:text="${s.fullName}"></td>
+                <td class="px-6 py-4 text-sm text-slate-700" th:text="${s.nationalId} ?: '—'"></td>
                 <td class="px-6 py-4 text-sm text-slate-700" th:text="${s.email} ?: '—'"></td>
                 <td class="px-6 py-4 text-sm text-slate-700" th:text="${s.attendedProgram} ?: '—'"></td>
                 <td class="px-6 py-4 text-sm">
@@ -68,6 +79,28 @@
         </table>
         </div>
     </div>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+            searchInput.addEventListener('keyup', function() {
+                var filter = searchInput.value.toLowerCase();
+                var tbody = document.querySelector('tbody');
+                if (!tbody) return;
+                var rows = tbody.getElementsByTagName('tr');
+
+                for (var i = 0; i < rows.length; i++) {
+                    var text = rows[i].textContent.toLowerCase();
+                    if (text.indexOf(filter) > -1) {
+                        rows[i].style.display = "";
+                    } else {
+                        rows[i].style.display = "none";
+                    }
+                }
+            });
+        }
+    });
+</script>
 </main>
 </body>
 </html>

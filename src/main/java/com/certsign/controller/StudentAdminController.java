@@ -98,6 +98,10 @@ public class StudentAdminController {
             }
         }
 
+        if (studentRepository.findByNationalId(studentRequest.getNationalId()).isPresent()) {
+            return buildFormModel(model, studentRequest, "A student with this National ID / Passport already exists.", null);
+        }
+
         String generatedId = studentRequest.getStudentNumber();
         if (generatedId == null || generatedId.trim().isEmpty() || studentRepository.findByStudentNumber(generatedId).isPresent()) {
             long nextNum = studentRepository.count() + 1;
@@ -172,6 +176,12 @@ public class StudentAdminController {
         if (existingByStudentNumber.isPresent() && !existingByStudentNumber.get().getId().equals(id)) {
             model.addAttribute("studentCertificates", certificateRepository.findByStudent_IdOrderByCreatedAtDesc(id));
             return buildFormModel(model, studentRequest, "A student with this Student ID already exists.", id);
+        }
+
+        var existingByNationalId = studentRepository.findByNationalId(studentRequest.getNationalId());
+        if (existingByNationalId.isPresent() && !existingByNationalId.get().getId().equals(id)) {
+            model.addAttribute("studentCertificates", certificateRepository.findByStudent_IdOrderByCreatedAtDesc(id));
+            return buildFormModel(model, studentRequest, "A student with this National ID / Passport already exists.", id);
         }
 
         student.setStudentNumber(studentRequest.getStudentNumber());
