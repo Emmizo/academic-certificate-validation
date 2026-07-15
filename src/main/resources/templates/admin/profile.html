@@ -62,8 +62,9 @@
                 <div>
                     <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600">Current Password</label>
                     <div class="relative mt-1">
-                        <input type="password" name="currentPassword" required
-                               class="w-full rounded-lg border border-slate-300 pl-3 pr-10 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#164655] shadow-sm"/>
+                        <input type="password" name="currentPassword" id="currentPasswordInput" required
+                               class="w-full rounded-lg border border-slate-300 pl-3 pr-10 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#164655] shadow-sm"
+                               oninput="debouncedVerifyCurrentPassword()"/>
                         <button type="button" class="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600 transition-colors duration-150" onclick="togglePasswordVisibility(this)">
                             <svg class="h-5 w-5 eye-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -78,8 +79,9 @@
                 <div>
                     <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600">New Password</label>
                     <div class="relative mt-1">
-                        <input type="password" name="newPassword" required minlength="8"
-                               class="w-full rounded-lg border border-slate-300 pl-3 pr-10 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#164655] shadow-sm"/>
+                        <input id="newPasswordInput" type="password" name="newPassword" required
+                               class="w-full rounded-lg border border-slate-300 pl-3 pr-10 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#164655] shadow-sm"
+                               oninput="validatePassword()"/>
                         <button type="button" class="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600 transition-colors duration-150" onclick="togglePasswordVisibility(this)">
                             <svg class="h-5 w-5 eye-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -90,12 +92,39 @@
                             </svg>
                         </button>
                     </div>
+                    <ul class="mt-2 text-xs space-y-1 text-slate-500">
+                        <li id="rule-length" class="flex items-center">
+                            <svg class="mr-1 h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                            At least 8 characters
+                        </li>
+                        <li id="rule-letter" class="flex items-center">
+                            <svg class="mr-1 h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                            At least one letter
+                        </li>
+                        <li id="rule-number" class="flex items-center">
+                            <svg class="mr-1 h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                            At least one number
+                        </li>
+                        <li id="rule-special" class="flex items-center">
+                            <svg class="mr-1 h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                            At least one special character
+                        </li>
+                        <li id="rule-different" class="flex items-center">
+                            <svg class="mr-1 h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                            <span>Different from current password</span>
+                        </li>
+                        <li id="rule-match" class="flex items-center">
+                            <svg class="mr-1 h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                            <span>Passwords match</span>
+                        </li>
+                    </ul>
                 </div>
                 <div>
                     <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600">Confirm New Password</label>
                     <div class="relative mt-1">
-                        <input type="password" name="confirmPassword" required minlength="8"
-                               class="w-full rounded-lg border border-slate-300 pl-3 pr-10 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#164655] shadow-sm"/>
+                        <input type="password" name="confirmPassword" id="confirmPasswordInput" required minlength="8"
+                               class="w-full rounded-lg border border-slate-300 pl-3 pr-10 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#164655] shadow-sm"
+                               oninput="validatePassword()"/>
                         <button type="button" class="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600 transition-colors duration-150" onclick="togglePasswordVisibility(this)">
                             <svg class="h-5 w-5 eye-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -107,8 +136,8 @@
                         </button>
                     </div>
                 </div>
-                <button type="submit"
-                        class="rounded-lg bg-[#164655] px-4 py-2 font-semibold text-white hover:bg-[#0f303a] text-sm shadow">
+                <button id="submitBtn" type="submit" disabled
+                        class="rounded-lg bg-[#164655] px-4 py-2 font-semibold text-white hover:bg-[#0f303a] text-sm shadow opacity-50 cursor-not-allowed">
                     Update Password
                 </button>
             </form>
@@ -130,6 +159,134 @@
                 input.type = 'password';
                 eyeIcon.classList.remove('hidden');
                 eyeOffIcon.classList.add('hidden');
+            }
+        }
+
+        let verifyTimeout;
+        let isCurrentPasswordValid = false;
+
+        function debouncedVerifyCurrentPassword() {
+            clearTimeout(verifyTimeout);
+            verifyTimeout = setTimeout(verifyCurrentPassword, 500);
+        }
+
+        async function verifyCurrentPassword() {
+            const input = document.getElementById('currentPasswordInput');
+            const val = input.value;
+            const msgEl = document.getElementById('currentPasswordError');
+            
+            if (!val) {
+                if (msgEl) msgEl.remove();
+                input.classList.remove('border-red-500');
+                input.classList.add('border-slate-300');
+                isCurrentPasswordValid = false;
+                validatePassword(); // Re-trigger validation to update submit button
+                return;
+            }
+
+            const csrfToken = document.querySelector('input[name="_csrf"]').value;
+            
+            const formData = new URLSearchParams();
+            formData.append('currentPassword', val);
+            formData.append('_csrf', csrfToken);
+
+            try {
+                const response = await fetch('/admin/profile/password/verify', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: formData
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    if (!data.match) {
+                        showCurrentPasswordError(input, 'Current password does not match.');
+                        isCurrentPasswordValid = false;
+                    } else {
+                        clearCurrentPasswordError(input);
+                        isCurrentPasswordValid = true;
+                    }
+                    validatePassword();
+                }
+            } catch (e) {
+                console.error('Failed to verify password', e);
+            }
+        }
+
+        function showCurrentPasswordError(input, message) {
+            let msgEl = document.getElementById('currentPasswordError');
+            if (!msgEl) {
+                msgEl = document.createElement('p');
+                msgEl.id = 'currentPasswordError';
+                msgEl.className = 'text-xs text-red-500 mt-1';
+                input.parentElement.parentElement.appendChild(msgEl);
+            }
+            msgEl.textContent = message;
+            input.classList.remove('border-slate-300');
+            input.classList.add('border-red-500');
+        }
+
+        function clearCurrentPasswordError(input) {
+            const msgEl = document.getElementById('currentPasswordError');
+            if (msgEl) msgEl.remove();
+            input.classList.remove('border-red-500');
+            input.classList.add('border-slate-300');
+        }
+
+        function validatePassword() {
+            const val = document.getElementById('newPasswordInput').value;
+            const currentVal = document.getElementById('currentPasswordInput').value;
+            const confirmVal = document.getElementById('confirmPasswordInput').value;
+            const btn = document.getElementById('submitBtn');
+            
+            const hasLength = val.length >= 8;
+            const hasLetter = /[A-Za-z]/.test(val);
+            const hasNumber = /\d/.test(val);
+            const hasSpecial = /[^A-Za-z0-9]/.test(val);
+            const isSame = val === currentVal && val.length > 0;
+            const hasDifferent = !isSame && val.length > 0;
+            const hasMatch = val === confirmVal && val.length > 0;
+            
+            updateRule('rule-length', hasLength);
+            updateRule('rule-letter', hasLetter);
+            updateRule('rule-number', hasNumber);
+            updateRule('rule-special', hasSpecial);
+            updateRule('rule-match', hasMatch);
+            
+            const diffEl = document.getElementById('rule-different');
+            const diffText = diffEl.querySelector('span');
+            if (isSame) {
+                diffEl.classList.remove('text-slate-500', 'text-emerald-600');
+                diffEl.classList.add('text-red-500');
+                diffText.textContent = 'New password is same as old password';
+            } else if (hasDifferent) {
+                diffEl.classList.remove('text-slate-500', 'text-red-500');
+                diffEl.classList.add('text-emerald-600');
+                diffText.textContent = 'Different from current password';
+            } else {
+                diffEl.classList.remove('text-emerald-600', 'text-red-500');
+                diffEl.classList.add('text-slate-500');
+                diffText.textContent = 'Different from current password';
+            }
+            
+            if (hasLength && hasLetter && hasNumber && hasSpecial && hasDifferent && hasMatch && isCurrentPasswordValid) {
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            } else {
+                btn.disabled = true;
+                btn.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+        }
+        
+        function updateRule(id, isValid) {
+            const el = document.getElementById(id);
+            if (isValid) {
+                el.classList.remove('text-slate-500');
+                el.classList.add('text-emerald-600');
+            } else {
+                el.classList.remove('text-emerald-600');
+                el.classList.add('text-slate-500');
             }
         }
     </script>

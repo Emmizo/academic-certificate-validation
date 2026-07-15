@@ -8,7 +8,10 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import java.util.Map;
 
 @Controller
 public class ProfileController {
@@ -29,6 +32,18 @@ public class ProfileController {
         return "admin/profile";
     }
 
+    @PostMapping("/admin/profile/password/verify")
+    @ResponseBody
+    public Map<String, Boolean> verifyCurrentPassword(
+            @RequestParam("currentPassword") String currentPassword,
+            Authentication authentication
+    ) {
+        var user = userRepository.findByUsername(authentication.getName())
+                .orElseThrow(() -> new IllegalStateException("Authenticated user not found"));
+        boolean match = passwordEncoder.matches(currentPassword, user.getPasswordHash());
+        return Map.of("match", match);
+    }
+
     @PostMapping("/admin/profile/password")
     public String updatePassword(
             @RequestParam("currentPassword") String currentPassword,
@@ -45,8 +60,13 @@ public class ProfileController {
             return "redirect:/admin/profile";
         }
 
-        if (newPassword == null || newPassword.length() < 8) {
-            redirectAttributes.addFlashAttribute("error", "New password must be at least 8 characters long.");
+        if (newPassword == null || newPassword.length() < 8 || !newPassword.matches(".*[A-Za-z].*") || !newPassword.matches(".*\\d.*") || !newPassword.matches(".*[^A-Za-z0-9].*")) {
+            redirectAttributes.addFlashAttribute("error", "New password must be at least 8 characters long, and contain at least one letter, one number, and one special character.");
+            return "redirect:/admin/profile";
+        }
+
+        if (passwordEncoder.matches(newPassword, user.getPasswordHash())) {
+            redirectAttributes.addFlashAttribute("error", "New password cannot be the same as your old password.");
             return "redirect:/admin/profile";
         }
 

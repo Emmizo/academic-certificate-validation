@@ -11,7 +11,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import java.util.Map;
 
 import com.certsign.model.UserRole;
 import com.certsign.service.MailService;
@@ -194,7 +196,7 @@ public class UserAdminController {
             String body = """
                     You requested a password reset for your IPRC Tumba College portal account.
 
-                    Reset password link (valid for 1 minute):
+                    Reset password link (valid for 3 minutes):
                     %s
 
                     If this was not you, please ignore this email.
@@ -236,6 +238,16 @@ public class UserAdminController {
             model.addAttribute("error", ex.getMessage());
             return "reset-password";
         }
+    }
+
+    @PostMapping("/reset-password/verify")
+    @ResponseBody
+    public Map<String, Boolean> verifyNewPasswordDifferent(
+            @RequestParam("token") String token,
+            @RequestParam("newPassword") String newPassword
+    ) {
+        boolean isSame = userManagementService.isSameAsOldPassword(token, newPassword);
+        return Map.of("sameAsOld", isSame);
     }
 
     private List<UserRole> availableRoles(Authentication authentication) {

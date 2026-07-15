@@ -17,7 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class UserManagementService {
 
-    private static final int RESET_EXPIRY_MINUTES = 1;
+    private static final int RESET_EXPIRY_MINUTES = 3;
     private static final String RANDOM_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$%";
 
     private final UserRepository userRepository;
@@ -88,7 +88,8 @@ public class UserManagementService {
     }
 
     @Transactional
-    public void updateUser(Long userId, String username, String fullName, String email, UserRole role, String newPassword) {
+    public void updateUser(Long userId, String username, String fullName, String email, UserRole role,
+            String newPassword) {
         if (userId == null) {
             throw new IllegalArgumentException("User not found.");
         }
@@ -124,8 +125,13 @@ public class UserManagementService {
         user.setRole(role);
 
         if (!isBlank(newPassword)) {
-            if (newPassword.length() < 8) {
-                throw new IllegalArgumentException("New password must be at least 8 characters.");
+            if (passwordEncoder.matches(newPassword, user.getPasswordHash())) {
+                throw new IllegalArgumentException("New password cannot be the same as your old password.");
+            }
+            if (newPassword.length() < 8 || !newPassword.matches(".*[A-Za-z].*") || !newPassword.matches(".*\\d.*")
+                    || !newPassword.matches(".*[^A-Za-z0-9].*")) {
+                throw new IllegalArgumentException(
+                        "New password must be at least 8 characters long, and contain at least one letter, one number, and one special character.");
             }
             user.setPasswordHash(passwordEncoder.encode(newPassword));
         }
@@ -150,9 +156,10 @@ public class UserManagementService {
                 .orElseThrow(() -> new IllegalArgumentException("User not found."));
 
         if (!user.getIssuedCertificates().isEmpty() ||
-            !user.getApprovedCertificates().isEmpty() ||
-            !user.getSentCertificates().isEmpty()) {
-            throw new IllegalArgumentException("This user has associated certificate records and cannot be deleted. Deactivate their account instead.");
+                !user.getApprovedCertificates().isEmpty() ||
+                !user.getSentCertificates().isEmpty()) {
+            throw new IllegalArgumentException(
+                    "This user has associated certificate records and cannot be deleted. Deactivate their account instead.");
         }
 
         userRepository.delete(user);
@@ -181,17 +188,30 @@ public class UserManagementService {
 
     @Transactional
     public void resetPassword(String token, String newPassword) {
-        if (isBlank(newPassword) || newPassword.length() < 8) {
-            throw new IllegalArgumentException("New password must be at least 8 characters.");
-        }
         User user = findUserByValidToken(token);
         if (user == null) {
             throw new IllegalArgumentException("Reset link is invalid or expired.");
+        }
+        if (passwordEncoder.matches(newPassword, user.getPasswordHash())) {
+            throw new IllegalArgumentException("New password cannot be the same as your old password.");
+        }
+        if (isBlank(newPassword) || newPassword.length() < 8 || !newPassword.matches(".*[A-Za-z].*")
+                || !newPassword.matches(".*\\d.*") || !newPassword.matches(".*[^A-Za-z0-9].*")) {
+            throw new IllegalArgumentException(
+                    "New password must be at least 8 characters long, and contain at least one letter, one number, and one special character.");
         }
         user.setPasswordHash(passwordEncoder.encode(newPassword));
         user.setPasswordResetToken(null);
         user.setPasswordResetTokenExpiry(null);
         userRepository.save(user);
+    }
+
+    public boolean isSameAsOldPassword(String token, String newPassword) {
+        User user = findUserByValidToken(token);
+        if (user == null || isBlank(newPassword)) {
+            return false;
+        }
+        return passwordEncoder.matches(newPassword, user.getPasswordHash());
     }
 
     private User findUserByValidToken(String token) {

@@ -35,6 +35,7 @@ public class SecurityConfig {
                                 "/contact",
                                 "/forgot-password",
                                 "/reset-password",
+                                "/reset-password/verify",
                                 "/api/v1/certificates/verify"
                         ).permitAll()
                         .requestMatchers("/css/**", "/js/**", "/images/**", "/webjars/**").permitAll()
